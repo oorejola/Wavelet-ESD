@@ -8,6 +8,8 @@ library(wavelets)
 library(RMTstat)
 library(ggplot2)
 
+## changing this line as a test#
+dfdf df 
 waveESD <-function(level,scale,H){
   N <- 2^level
   n_j <- N/(2^scale)

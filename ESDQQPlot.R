@@ -7,9 +7,8 @@ library(somebm)
 library(wavelets)
 library(RMTstat)
 library(ggplot2)
-
-## changing this line as a test#
-
+library(gridExtra)
+library(grid)
 waveESD <-function(level,scale,H){
   N <- 2^level
   n_j <- N/(2^scale)
@@ -45,22 +44,45 @@ par(mfrow = c(3,1))
 
 level <- 11
 scale <- 2
-Hurst <- 0.1
+Hurst1 <- 0.1
+Hurst2 <- 0.25
+Hurst3 <- 0.5
 
-E<- exp(waveESD(level,scale,Hurst))
-m <- min(E)
-M <- max(E)
+E1<- exp(waveESD(level,scale,Hurst1))
+m <- min(E1)
+M <- max(E1)
 
-hist(E,probability=TRUE
-     ,breaks = seq(m-1,M+1, by = 0.05)
+hist(E1,probability=TRUE
+     ,breaks = seq(m,M+1, by = 0.05)
      , xlab= "Eigenvalues"
-     ,xlim=c(m,M+1) #,ylim=c(0)
-     ,main = paste("H=",Hurst,", n=2^",level,", j=",scale)
+     ,xlim=c(0,5) #,ylim=c(0)
+     ,main = paste("H=",Hurst1,", n=2^",level,", j=",scale)
+)
+addMP(1)
+E2<- exp(waveESD(level,scale,Hurst2))
+m <- min(E2)
+M <- max(E2)
+
+hist(E2,probability=TRUE
+     ,breaks = seq(m,M+1, by = 0.05)
+     , xlab= "Eigenvalues"
+     ,xlim=c(0,5) #,ylim=c(0)
+     ,main = paste("H=",Hurst2,", n=2^",level,", j=",scale)
 )
 addMP(1)
 
+E3<- exp(waveESD(level,scale,Hurst3))
+m <- min(E3)
+M <- max(E3)
+
+hist(E3,probability=TRUE
+     ,breaks = seq(m,M+1, by = 0.05)
+     , xlab= "Eigenvalues"
+     ,xlim=c(0,5) #,ylim=c(0)
+     ,main = paste("H=",Hurst3,", n=2^",level,", j=",scale)
+)
 addMP(1)
-qmp( 5, ndf=NA, pdim=1, var=1, svr=1, lower.tail = TRUE, log.p = FALSE )
+#qmp( 5, ndf=NA, pdim=1, var=1, svr=1, lower.tail = TRUE, log.p = FALSE )
 #X<-rmp( 2000, ndf=NA, pdim=1, var=1, svr=1 )
 #hist(X,probability=TRUE
 #     ,breaks = seq(0,5,by=0.05))
@@ -69,11 +91,9 @@ qmp( 5, ndf=NA, pdim=1, var=1, svr=1, lower.tail = TRUE, log.p = FALSE )
 
 quantile(mp)
 
-set.seed(123);
+#set.seed(123);
 #DATA <- rexp(40,1);
-DATA <- E;
-
-
+DATA <- E1;
 #QQ plot of data against MP(1) distribution
 N         <- length(DATA);
 PERCS     <- ((1:N)-0.5)/N;
@@ -90,16 +110,76 @@ theme_update(plot.title    = element_text(size = 15, hjust = 0.5),
              axis.title.x  = element_text(size = 10, hjust = 0.5),
              axis.title.y  = element_text(size = 10, vjust = 0.5),
              plot.margin   = unit(c(1, 1, 1, 1), "cm"));
-
-QQPLOT <- ggplot(data = PLOTDATA, aes(x = Theoretical, y = Sample)) +
+#theme(aspect.ratio=1)
+QQPLOT1 <- ggplot(data = PLOTDATA, aes(x = Theoretical, y = Sample)) +
   geom_point(size = 2, colour = 'blue') +
   geom_abline(intercept = 0, slope = 1, linetype = 'dashed') + 
-  ggtitle(paste('Quantile-Quantile Plot H=',Hurst)) + 
+  ggtitle(paste('Quantile-Quantile Plot H=',Hurst1)) + 
   labs(subtitle = '(Comparison to Marchenko Pastur)') + 
   xlab('Theoretical Quantiles') + 
   ylab('Sample Quantiles');
+QQPLOT1 + coord_cartesian(ylim = c(0, 4),xlim = c(0, 4))#+coord_fixed(ratio=1)
 
-QQPLOT
+DATA <- E2;
+#QQ plot of data against MP(1) distribution
+N         <- length(DATA);
+PERCS     <- ((1:N)-0.5)/N;
+#QUANTILES <- -log(1-PERCS);
+QUANTILES <-qmp(PERCS, ndf=NA, pdim=1, var=1, svr=1, lower.tail = TRUE, log.p = FALSE )
+PLOTDATA <- data.frame(Sample = sort(DATA),
+                       Theoretical = QUANTILES);
+
+
+#Generate custom QQ plot
+
+theme_update(plot.title    = element_text(size = 15, hjust = 0.5),
+             plot.subtitle = element_text(size = 10, hjust = 0.5),
+             axis.title.x  = element_text(size = 10, hjust = 0.5),
+             axis.title.y  = element_text(size = 10, vjust = 0.5),
+             plot.margin   = unit(c(1, 1, 1, 1), "cm"));
+theme(aspect.ratio=1)
+QQPLOT2 <- ggplot(data = PLOTDATA, aes(x = Theoretical, y = Sample)) +
+  geom_point(size = 2, colour = 'blue') +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed') + 
+  ggtitle(paste('Quantile-Quantile Plot H=',Hurst2)) + 
+  labs(subtitle = '(Comparison to Marchenko Pastur)') + 
+  xlab('Theoretical Quantiles') + 
+  ylab('Sample Quantiles');
+QQPLOT2 + coord_cartesian(ylim = c(0, 4),xlim = c(0, 4))
+
+
+DATA <- E3;
+#QQ plot of data against MP(1) distribution
+N         <- length(DATA);
+PERCS     <- ((1:N)-0.5)/N;
+#QUANTILES <- -log(1-PERCS);
+QUANTILES <-qmp(PERCS, ndf=NA, pdim=1, var=1, svr=1, lower.tail = TRUE, log.p = FALSE )
+PLOTDATA <- data.frame(Sample = sort(DATA),
+                       Theoretical = QUANTILES);
+
+
+#Generate custom QQ plot
+
+theme_update(plot.title    = element_text(size = 15, hjust = 0.5),
+             plot.subtitle = element_text(size = 10, hjust = 0.5),
+             axis.title.x  = element_text(size = 10, hjust = 0.5),
+             axis.title.y  = element_text(size = 10, vjust = 0.5),
+             plot.margin   = unit(c(1, 1, 1, 1), "cm"));
+theme(aspect.ratio=1)
+QQPLOT3 <- ggplot(data = PLOTDATA, aes(x = Theoretical, y = Sample)) +
+  geom_point(size = 2, colour = 'blue') +
+  geom_abline(intercept = 0, slope = 1, linetype = 'dashed') + 
+  ggtitle(paste('Quantile-Quantile Plot H=',Hurst3)) + 
+  labs(subtitle = '(Comparison to Marchenko Pastur)') + 
+  xlab('Theoretical Quantiles') + 
+  ylab('Sample Quantiles');
+QQPLOT3 + coord_cartesian(ylim = c(0, 4.5),xlim = c(0, 4.5))
+
+grid.arrange(QQPLOT1,QQPLOT2,QQPLOT3,ncol=1)
+
+QQPLOT1+ coord_fixed(ratio=1)
+QQPLOT2+ coord_fixed(ratio=1)
+QQPLOT3+ coord_fixed(ratio=1)
 
 
 

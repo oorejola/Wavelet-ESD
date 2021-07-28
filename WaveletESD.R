@@ -1,6 +1,6 @@
 # Oliver Orejola
 # Created: 6/30/21
-# Updated: 7/17/21
+# Updated: 7/27/21
 # Wavelet ESD
 
 #########[ Run First ]#########
@@ -18,9 +18,11 @@ waveESD <-function(level,scale,H){
     X<- append(X,unlist(wave@W[scale]))
   }
   XX <- matrix( X, n_j, n_j,byrow = TRUE)  
-  E <-log(eigen(1/n_j* crossprod(XX))$values)#-factor
+  #E <-log(eigen(1/n_j* crossprod(XX))$values)#-factor sample covariance as defined in MP
+  E <-log(eigen(1/n_j* crossprod(t(XX)))$values)#-factor classical covariance
   return(E)
 }
+
 
 addlogMP <-function(lambda){
   lambda_plus = (1 + sqrt(lambda))**2
@@ -31,23 +33,22 @@ addlogMP <-function(lambda){
 }
 ###############################
 level <- 12
-scale <- 6
-Hurst <- 0.1
+scale <- 4
+Hurst <- 0.5
 
 E<- waveESD(level,scale,Hurst)
 m <- min(E)
 M <- max(E)
 
-hist(E)
 hist(E,probability=TRUE
      ,breaks = seq(m-1,M+1, by = 0.3)
      ,xlim=c(m,M+1) ,ylim=c(0,0.4), xlab= "Eigenvalues"
      ,main = paste("H=",Hurst,", n=2^",level,", j=",scale)
 )
-addMP(1)
+addlogMP(1)
 
 ##############################
-par(mfrow = c(5,4))
+par(mfrow = c(2,1))
 level <- 20
 
 H_list <- c(0.1,0.25,0.5,0.75,0.9)

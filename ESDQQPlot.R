@@ -16,8 +16,12 @@ waveESD <-function(level,scale,H){
   X <- c()
   for(i in 1:n_j){
     fbmSIM <- N^H* fbm(hurst = H, n = N)
+    #fbmSIM <- fbm(hurst = H, n = N)
     wave <- dwt(fbmSIM, filter = "d4", n.levels = level, boundary = "reflection")
-    X<- append(X,unlist(wave@W[scale]))
+    wave <- unlist(wave@W[scale])/ sd(unlist(wave@W[scale]))
+    # normalize variance of wavelet coefficients
+    #X<- append(X,unlist(wave@W[scale]))
+    X<- append(X,wave)
   }
   XX <- matrix( X, n_j, n_j,byrow = TRUE)  
   E <-log(eigen(1/n_j* crossprod(XX))$values)#-factor
@@ -40,12 +44,12 @@ addMP <- function(lambda){
   lines(u,v,lwd=2)
 }
 ###############################
-par(mfrow = c(3,1))
+#par(mfrow = c(3,1))
 
-level <- 11
-scale <- 2
-Hurst1 <- 0.1
-Hurst2 <- 0.25
+level <- 12
+scale <- 3
+Hurst1 <- 0.9
+Hurst2 <- 0.7
 Hurst3 <- 0.5
 
 E1<- exp(waveESD(level,scale,Hurst1))
@@ -175,11 +179,15 @@ QQPLOT3 <- ggplot(data = PLOTDATA, aes(x = Theoretical, y = Sample)) +
   ylab('Sample Quantiles');
 QQPLOT3 + coord_cartesian(ylim = c(0, 4.5),xlim = c(0, 4.5))
 
-grid.arrange(QQPLOT1,QQPLOT2,QQPLOT3,ncol=1)
+#grid.arrange(QQPLOT1,QQPLOT2,QQPLOT3,ncol=1)
 
-QQPLOT1+ coord_fixed(ratio=1)
-QQPLOT2+ coord_fixed(ratio=1)
-QQPLOT3+ coord_fixed(ratio=1)
+#QQPLOT1+ coord_fixed(ratio=1)
+#QQPLOT2+ coord_fixed(ratio=1)
+#QQPLOT3+ coord_fixed(ratio=1)
 
-
-
+H = 0.25
+k=15
+fBM<-((2^k)^H)*fbm(hurst=H,n=2^k)
+#fBM<-fbm(hurst=H,n=2^k)
+plot(fBM)
+var(fBM)

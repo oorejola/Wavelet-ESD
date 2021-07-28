@@ -6,7 +6,7 @@
 #
 #
 #################################
-
+library(longmemo)
 addMP<- function(lambda){
   lambda_plus = (1 + sqrt(lambda))**2
   lambda_minus = (1 - sqrt(lambda))**2
@@ -29,7 +29,7 @@ specdenfARIMA <- function(v,d){
 
 N = 750
 U = runif(N,-pi,pi)
-phi = 0.75
+phi = 0.24
 d = -0.2
 f_AR <- 2*pi*diag(specdenAR(U,phi,1))
 
@@ -64,6 +64,19 @@ hist(E_AR,probability=TRUE
      ,main = paste("ESD Sample Cov AR(1) phi =", phi)
 )
 addMP(1)
+
+
+par(mfrow = c(1,1))
+
+qqplot(E_AR_FMP,E_AR
+       ,xlim = c(0,M+1),xlab = "Free Multiplicative Convolution"
+       ,ylim = c(0,M+1), ylab = "Sample Covariance"
+       ,main = paste("QQ-plot AR(1) phi=", phi)
+)
+u=seq(0,M+1,by=.01)
+v=u
+lines(u,v,col = "steelblue",lwd=2)
+
 #################################
 
 X<- c()
@@ -74,6 +87,8 @@ for(i in 1:N){
 XX <- matrix( X, N, N,byrow = TRUE)  
 E_fARMA <-eigen(1/N*crossprod(t(XX)))$values
 M <- max(E_fARMA,E_fARMA_FMP)
+
+par(mfrow = c(2,1))
 
 hist(E_fARMA_FMP, probability=TRUE, breaks = seq(0,M+1,by = 0.05)
      ,ylim=c(0,2)
@@ -87,3 +102,14 @@ hist(E_fARMA, probability=TRUE, breaks = seq(0,M+1,by = 0.05)
      ,main = paste("ESD Sample Cov fARIMA d =", d)
 )
 addMP(1)
+
+par(mfrow = c(1,1))
+
+qqplot(E_fARMA_FMP,E_fARMA
+       ,xlim = c(0,M+1),xlab = "Free Multiplicative Convolution"
+       ,ylim = c(0,M+1), ylab = "Sample Covariance"
+       ,main = paste("QQ-plot fARIMA d =", phi)
+)
+u=seq(0,M+1,by=.01)
+v=u
+lines(u,v,col = "steelblue",lwd=2)

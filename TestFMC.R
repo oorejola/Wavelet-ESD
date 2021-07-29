@@ -1,7 +1,7 @@
 # Oliver Orejola
 #
 # Created: 7/16/21
-# Updated: 7/27/21
+# Updated: 7/29/21
 # Free Multiplicative Convolution 
 #
 #
@@ -29,8 +29,8 @@ specdenfARIMA <- function(v,d){
 
 N = 750
 U = runif(N,-pi,pi)
-phi = 0.24
-d = -0.2
+phi = 0.7
+d = 0.2
 f_AR <- 2*pi*diag(specdenAR(U,phi,1))
 
 f_fARIMA <- 2*pi*diag(specdenfARIMA(U,d))
@@ -108,8 +108,58 @@ par(mfrow = c(1,1))
 qqplot(E_fARMA_FMP,E_fARMA
        ,xlim = c(0,M+1),xlab = "Free Multiplicative Convolution"
        ,ylim = c(0,M+1), ylab = "Sample Covariance"
-       ,main = paste("QQ-plot fARIMA d =", phi)
+       ,main = paste("QQ-plot fARIMA d =", d)
 )
 u=seq(0,M+1,by=.01)
 v=u
 lines(u,v,col = "steelblue",lwd=2)
+
+####### MIXING ######
+
+N = 750
+U = runif(N,-pi,pi)
+p = 0.5
+phi_1=0.4
+phi_2=0.6
+
+mix_FMC <- c()
+for(u in U){
+  if(rbinom(1,1,p)==1){
+    mix_FMC <- append(mix_FMC, specdenAR(u,phi_1,1))
+  }
+  else{
+    mix_FMC <- append(mix_FMC, specdenAR(u,phi_2,1))
+  }
+}
+
+f_mix_AR <- 2*pi*diag(mix_FMC)
+
+X<- matrix(rnorm(N*N),N,N)
+MP <- 1/N*crossprod(X)
+
+E_AR_FMP <-eigen(f_mix_AR  %*% MP)$values
+
+
+X<-c()
+for(i in 1:N){
+  if(rbinom(1,1,p)==1){
+    X<- append(X,arima.sim(list(order=c(1,0,0), ar=phi_1), n=N))
+  }
+  else{
+    X<- append(X,arima.sim(list(order=c(1,0,0), ar=phi_2), n=N))
+  }
+  
+}
+XX <- matrix( X, N,N, byrow = TRUE)  
+E_AR <-eigen(1/N* crossprod(XX))$values
+
+M <- max( E_AR ,E_AR_FMP)
+qqplot(E_AR_FMP ,E_AR
+       ,xlim = c(0,M+1),xlab = "Free Multiplicative Convolution"
+       ,ylim = c(0,M+1), ylab = "Sample Covariance"
+       ,main = paste("QQ-plot mixing AR(1) phi_1=", phi_1," phi_2 =",phi_2)
+)
+u=seq(0,M+1,by=.01)
+v=u
+lines(u,v,col = "steelblue",lwd=2)
+

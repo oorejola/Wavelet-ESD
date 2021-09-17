@@ -1,6 +1,6 @@
 # Oliver Orejola
 # Created: 7/2/21
-# Updated: 9/15/21
+# Updated: 9/16/21
 # Wavelet ESD for Mixed Hurst Parameters
 
 
@@ -13,56 +13,63 @@ library(diptest)
 
 H0 = 0.25
 H1 = 0.75
-level = 14
-scale = 6
+level = 9
+scale = 4
 mixingrate = 0.5
 
-path_size = 2^level
-N = path_size 
-n_j = N/(2^scale) #effective sample size
-a = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
-p = floor(a*n_j) #dimension i.e. number of fBM we sample
-X_MIXED <- c()
-X_0 <- c()
-X_1 <- c()
 
-for(i in 1:p){
-  fbmSIM_0 <- N^H0*fbm(hurst = H0, n = N)
-  fbmSIM_1 <- N^H1*fbm(hurst = H1, n = N)
-  MIXED<- c()
-  if( rbinom(1,1,mixingrate) == 1){
-    MIXED<- append(MIXED, fbmSIM_1)
+alpha = 0.75 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
+p = floor(alpha*n_j) #dimension i.e. number of fBM we sample
+
+
+mixed_wavelet_sampe_covariance <- function(level,scale,p,H0,H1,mixingrate){
+  N = 2^level
+  n_j = N/(2^scale) #effective sample size
+  X_MIXED <- c()
+  for(i in 1:p){
+    MIXED<- c()
+    if( rbinom(1,1,mixingrate) == 1){
+      fbmSIM_1 <- N^H1*fbm(hurst = H1, n = N)
+      MIXED<- fbmSIM_1
+    }
+    else{
+      fbmSIM_0 <- N^H0*fbm(hurst = H0, n = N)
+      MIXED<- fbmSIM_0
+    }
+    wave_MIXED <- dwt(MIXED, filter = "d4", n.levels = level, boundary = "reflection")
+    X_MIXED<- append(X_MIXED,unlist(wave_MIXED@W[scale]))
   }
-  else{
-    MIXED<- append(MIXED, fbmSIM_0)
-  }
-  wave_MIXED <- dwt(MIXED, filter = "d4", n.levels = level, boundary = "reflection")
-#  wave_0 <- dwt(fbmSIM_0, filter = "d4", n.levels = level, boundary = "reflection")
-#  wave_1 <- dwt(fbmSIM_1, filter = "d4", n.levels = level, boundary = "reflection")
-  X_MIXED<- append(X_MIXED,unlist(wave_MIXED@W[scale]))
-#  X_0 <- append(X_0,unlist(wave_0@W[scale]))
-#  X_1<- append(X_1,unlist(wave_1@W[scale]))
+  Xmat_MIXED <- matrix( X_MIXED, n_j, p,byrow = FALSE)  
+  W_MIXED <-  crossprod(Xmat_MIXED)
+  return(log(eigen(1/n_j*W_MIXED)$values))
 }
 
+E_MIXED <- mixed_wavelet_sampe_covariance(level,scale,p,H0,H1,mixingrate)
 
-Xmat_MIXED <- matrix( X_MIXED, n_j, p,byrow = FALSE)  
-W_MIXED <-  crossprod(Xmat_MIXED)
-E_MIXED <-log(eigen(1/n_j*W_MIXED)$values)
+pvalue<-dip.test(E_MIXED)$p.value
 
-#Xmat_0 <- matrix( X_0, n_j, n_j,byrow = TRUE)  
-#W_0 <-  crossprod(Xmat_0)
-#E_0 <-log(eigen(1/n_j*W_0)$values)
+alpha = 0.5
+significance = 0.05 #Rejection  region
 
-#Xmat_1 <- matrix( X_1, n_j, n_j,byrow = TRUE)  
-#W_1 <-  crossprod(Xmat_1)
-#E_1 <-log(eigen(1/n_j*W_1)$values)
-
-
+for(i in 9:14){
+  for(j in 4:(i-1)){
+    p = floor( alpha * 2^(i-j))
+    E_MIXED <- mixed_wavelet_sampe_covariance(i,j,p,H0,H1,mixingrate)
+    pvalue<-dip.test(E_MIXED)$p.value
+    
+    if( pvalue<= significance){
+      test = "Reject"
+    }
+    else{
+      test = "Accept"
+    }
+    print(paste(round(j,digits=1),as.integer(i),as.integer(p), pvalue, test))
+  }
+}
 #########################
 par(mfrow = c(1,1))
 
-#m <- min(E_MIXED,E_0,E_1)
-#M <- max(E_MIXED,E_0,E_1)
+
 
 m <- min(E_MIXED)
 M <- max(E_MIXED)
@@ -71,17 +78,9 @@ hist(E_MIXED,probability=TRUE
      ,breaks = seq(m-1,M+1, by = 0.25)
      ,xlim = c(m,M+5)
      ,xlab = "Eigenvalues"
-     ,main = paste("H_0=",H0,", H_1=",H1, ", n_j=",n_j,", p/n_j=",a)
+     ,main = paste("H_0=",H0,", H_1=",H1, ", n_j=",n_j,", p/n_j=",alpha)
 )
-#hist(E_0 ,probability=TRUE
-#     ,breaks = seq(m,M+1, by = 0.75)
-#     ,xlim = c(m,M+5)
-#     ,main = paste("H_0=",H0,", n=2^",level,", j=",scale)
-#)
-#hist(E_1 ,probability=TRUE
-#     ,breaks = seq(m-1,M+1, by = 0.75)
-#     ,xlim = c(m,M+5)
-#     ,main = paste("H_1=",H1,", n=2^",level,", j=",scale)
-#)
 
-dip.test(E_MIXED)
+
+
+

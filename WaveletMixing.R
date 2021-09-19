@@ -46,8 +46,35 @@ mixed_wavelet_sampe_covariance <- function(level,scale,p,H0,H1,mixingrate){
   return(log(eigen(1/n_j*W_MIXED)$values))
 }
 
-E_MIXED <- mixed_wavelet_sampe_covariance(level,scale,p,H0,H1,mixingrate)
 
+
+N_mixed_wavelet_sampe_covariance <- function(level,scale,p,Hursts){
+  N = 2^level
+  n_j = N/(2^scale) #effective sample size
+  X_MIXED <- c()
+  for(i in 1:p){
+    MIXED<- c()
+    H <- sample(Hursts,1)
+    MIXED<-  N^H*fbm(hurst = H, n = N)
+    wave_MIXED <- dwt(MIXED, filter = "d4", n.levels = level, boundary = "reflection")
+    X_MIXED<- append(X_MIXED,unlist(wave_MIXED@W[scale]))
+  }
+  Xmat_MIXED <- matrix( X_MIXED, n_j, p,byrow = FALSE)  
+  W_MIXED <-  crossprod(Xmat_MIXED)
+  return(log(eigen(1/n_j*W_MIXED)$values))
+}
+
+Etest <- N_mixed_wavelet_sampe_covariance(14,6,50,c(0.2,0.8,0.4,0.6))
+hist(Etest)
+
+
+m <- min(Etest)
+M <- max(Etest)
+
+hist(Etest,probability=TRUE
+     ,breaks = seq(m-1,M+1, by = 0.25)
+     ,xlim = c(m,M+5)
+)
 monte_carlo_power_two_hurst <- function(runs,significance,level,scale,p,mixingrate){
   count = 0
   for(i in 1:runs){
@@ -93,8 +120,6 @@ for(i in 1:5){
 plot(c(10,11,12,13,14),c(0,0,0.776,0.988,0.997),type = "o")
 
 
-
-
 pvalue<-dip.test(E_MIXED)$p.value
 
 alpha = 0.5
@@ -119,7 +144,7 @@ for(i in 9:12){
 par(mfrow = c(1,1))
 
 
-
+E_MIXED <- mixed_wavelet_sampe_covariance(level,scale,p,H0,H1,mixingrate)
 m <- min(E_MIXED)
 M <- max(E_MIXED)
 

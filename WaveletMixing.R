@@ -127,12 +127,12 @@ pvalue<-dip.test(E_MIXED)$p.value
 alpha = 0.5
 significance = 0.05 #Rejection  region
 
-for(i in 9:12){
+for(i in 9:16){
   for(j in 4:(i-1)){
     p = floor( alpha * 2^(i-j))
-    E_MIXED <- mixed_wavelet_sampe_covariance(i,j,p,H0,H1,mixingrate)
-    pvalue<-dip.test(E_MIXED)$p.value
-    
+    #E_MIXED <- mixed_wavelet_sampe_covariance(i,j,p,H0,H1,mixingrate)
+    #pvalue<-dip.test(E_MIXED)$p.value
+    pvalue = 0
     if( pvalue<= significance){
       test = "Reject"
     }
@@ -173,36 +173,60 @@ hist(E_MIXED,probability=TRUE
 
 #-------------------------------------- dimension = 32
 #----------------------- 2 hurst parameters 
-for(i in 1:6){
-  level = 10+i
-  scale = 4+i
+for(level in 10:13){
+  scale = level - 6
   N = 2^level #Path size
   n_j = N/(2^scale)#effective sample size
   alpha = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
   p = floor(alpha*n_j) #
-  power <-monte_carlo_power_N_hursts(1000,0.05,level,scale,p,c(0.27,0.75))
+  power <-monte_carlo_power_N_hursts(100,0.90,level,scale,p,c(0.27,0.75))
   print(paste(scale,level,p,power))
 }
-#----------------------- 4 hurst parameters 
-for(i in 1:6){
-  level = 10+i
-  scale = 4+i
-  N = 2^level #Path size
-  n_j = N/(2^scale)#effective sample size
-  alpha = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
-  p = floor(alpha*n_j) #
-  power <-monte_carlo_power_N_hursts(1000,0.05,level,scale,p,c(0.2,0.4,0.6,0.8))
+#---- FIXED SCALE
+
+#---- Triple Limit NULL
+for(scale in 5:8){
+  level = scale*2
+  p = 2^(level- 1-scale) #given alpha = 1/2
+  power <-monte_carlo_power_N_hursts(1000,0.90,level,scale,p,c(0.5))
   print(paste(scale,level,p,power))
 }
 
-#----------------- 1 hurst paramter
-for(level in 10:16){
+#---- Triple Limit 2 Hurst
+for(scale in 5:8){
+  level = scale*2
+  p = 2^(level- 1-scale) #given alpha = 1/2
+  power <-monte_carlo_power_N_hursts(10,0.90,level,scale,p,c(0.27,0.75))
+  print(paste(scale,level,p,power))
+}
+#---- Triple Limit 4 Hurst
+for(scale in 5:8){
+  level = scale*2
+  p = 2^(level- 1-scale) #given alpha = 1/2
+  power <-monte_carlo_power_N_hursts(10,0.90,level,scale,p,c(0.2,0.4,0.6,0.8))
+  print(paste(scale,level,p,power))
+}
+
+
+#----------------------- 4 hurst parameters 
+for(level in 10:13){
+  scale = level - 6
+  N = 2^level #Path size
+  n_j = N/(2^scale)#effective sample size
+  alpha = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
+  p = floor(alpha*n_j) #
+  power <-monte_carlo_power_N_hursts(100,0.90,level,scale,p,c(0.2,0.4,0.6,0.8))
+  print(paste(scale,level,p,power))
+}
+
+#----------------- 1 hurst paramter (NULL)
+for(level in 10:13){
   scale = level-6
   N = 2^level #Path size
   n_j = N/(2^scale)#effective sample size
   alpha = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
   p = floor(alpha*n_j) #
-  power <-monte_carlo_power_N_hursts(1000,0.05,level,scale,p,c(0.5))
+  power <-monte_carlo_power_N_hursts(100,0.95,level,scale,p,c(0.5))
   print(paste(scale,level,p,power))
 }
 
@@ -225,7 +249,7 @@ for(level in 10:16){
   n_j = N/(2^scale)#effective sample size
   alpha = 0.5 # effective sample size and dimension ratio, must be greater than 1 for rank sufficiency 
   p = floor(alpha*n_j) #
-  power <-monte_carlo_power_N_hursts(10,0.05,level,scale,p,c(0.1,0.25,0.40,0.55,0.70,0.85))
+  power <-monte_carlo_power_N_hursts(100,0.05,level,scale,p,c(0.1,0.25,0.40,0.55,0.70,0.85))
   print(paste(scale,level,p,power))
 }
 
@@ -278,8 +302,6 @@ plot(xaxis,power_4_hurst,type="o"
 
 
 
-
-
 #--------- 6 hurst ---------------------
 
 power_6_hurst <- c(0,0,0,0,0.052,0.104,0.2)
@@ -288,3 +310,13 @@ plot(xaxis,power_6_hurst,type="o"
      ,ylab = "Proportion of Rejections"
      ,main = "6 Hurst Parameters")
 
+
+E<- N_mixed_wavelet_sampe_covariance(16,8,64,c(0.5))/(j*log(2))
+m=min(E)
+M=max(E)
+hist(E,probability=TRUE
+     ,breaks = seq(m-1,M+1, by = 0.25)
+#     ,xlim = c(m,M)
+     ,xlab = "Eigenvalues"
+)
+mean(E)

@@ -222,15 +222,15 @@ Linear_Model<-lm(log_variances~c(4:7))
 summary(Linear_Model)
 
 #----- MSD ------
-level = 17
+level = 12
 #scale = 4
 pathsize <- 2^level
 hurst_1 <- 0.25
 hurst_2 <- 0.75
-scales <- c(4:15)
+scales <- c(4:11)
 data_1 <- rep(0,length(scales))
 data_2 <- rep(0,length(scales))
-runs =50
+runs = 50
 for(r in 1:runs){
 FBM_1 <- (pathsize)^hurst_1*fbm(hurst_1 ,n=pathsize)
 FBM_2 <- (pathsize)^hurst_2*fbm(hurst_2,n=pathsize)
@@ -255,38 +255,41 @@ par(mfrow = c(2,1))
 plot(scales,data_1,type = "o", main = "H = 0.25")
 plot(scales,data_2,type = "o", main = "H = 0.75")
 
+#---------- MEAN SQUARED DIFFERENCE 
+levels = 11
+pathsize = 2^levels
+hurst = 0.25
+scales <- c(4:6)
+FBM <- pathsize^hurst*fbm(hurst, pathsize)
 
-
-M_1 <- mean(diff(FBM,2^4)^2)
-M_2 <- mean(diff(FBM,2^5)^2)
-M_3 <- mean(diff(FBM,2^6)^2)
-M_3 <- mean(diff(FBM,2^6)^2)
-M_3 <- mean(diff(FBM,2^6)^2)
-M_3 <- mean(diff(FBM,2^6)^2)
-M <- c(M_1,M_2,M_3)
-tao <- c(2^4,2^6,2^8)
-
-Linear_Model<-lm(data~c(4:16))
-summary(Linear_Model)
+MSD_data <- c()
+for(j in scales){
+  MSD <- mean(diff(FBM,2^j)^2)
+  MSD_data <- append(MSD_data,MSD)
+}
+Linear_Model<-lm(log(M,base=2)~c(4,5,6))
+summary(Linear_Model)$coefficients[2,1]
 
 
 #-----------------Regression -------------------------
-j1 <- 6
-j2 <- 11
+j1 <- 5
+j2 <- 8
 l = j2-j1+1
 c(c(j1:j2),rep(1,l))
 X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
+X
 null_space <- Null(t(X))
 weights <- ginv(X)%*%c(1,0)
+weights 
 
 Hurst = 0.25
-level = 18
+level = 16
 
 delta <- 0
 data <- c()
-runs = 1000
+runs = 100
 
-for(level in 11:18){
+for(level in 11:level){
   avg_delta <- 0
   for(r in 1:runs){
     wavelet_eigen <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst)
@@ -299,20 +302,22 @@ for(level in 11:18){
   data <- append(data,avg_delta)
 }
 data <- data/runs
+
+data_rescale <- (data - 1)*0.5
 #data75<-data
 #data05 <-data
-data25 <-data
-par(mfrow=c(2,1))
+data25 <-data_rescale 
+par(mfrow=c(1,1))
 
-plot(c(11:18),data25, type = "l"
+plot(c(11:level),data25, type = "l"
      , xlab = "path size"
      , ylab = "delta"
-     , main = "Def 3.2 vs path size. Hurst = 0.25, j1 = 6 j2 = 11")
-plot(c(11:18),data05, type = "l"
+     , main = "Def 3.2 vs path size. Hurst = 0.25, j1 = 5 j2 = 8")
+plot(c(11:level),data05, type = "l"
      , xlab = "path size"
      , ylab = "delta"
      , main = "Def 3.2 vs path size. Hurst = 0.50, j1 = 6 j2 = 11")
-plot(c(11:18),data75, type = "l"
+plot(c(11:level),data75, type = "l"
      , xlab = "path size"
      , ylab = "delta"
      , main = "Def 3.2 vs path size. Hurst = 0.75, j1 = 6 j2 = 11")

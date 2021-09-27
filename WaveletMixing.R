@@ -47,6 +47,31 @@ wavelet_sampe_covariance<- function(level,scale,p,Hursts, mixed = FALSE){
   return(eigenvalues)
 }
 
+low_dim_wavelet_sampe_covariance<- function(level,scale,Hursts, mixed = FALSE){
+  N = 2^level
+  n_j = N/(2^scale) #effective sample size
+  wavelet_list <- c() 
+  for(H in Hursts){
+    #MIXED<-  N^H*fbm(hurst = H, n = N) 
+    fractional_brownian <-  N^H*fbm(hurst = H, n = N) 
+    wavelet_transform <- dwt(fractional_brownian, filter = "d4", n.levels = level, boundary = "reflection")
+    wavelet_list <- append(wavelet_list,unlist(wavelet_transform@W[scale]))
+  }
+  wavelet_mat<- matrix(wavelet_list, n_j, p,byrow = FALSE)
+  
+  if(mixed == TRUE){ 
+    P <- coordinate_matrix(p)
+    mixed_wavlet_mat <- wavelet_mat %*% t(P)
+    mixed_wavlet_product <- crossprod(mixed_wavlet_mat)
+    eigenvalues <- eigen(1/n_j*mixed_wavlet_product)$values
+  }
+  else{
+    wavelet_product <-  crossprod(wavelet_mat)
+    eigenvalues <- eigen(1/n_j*wavelet_product)$values
+  }
+  return(eigenvalues)
+}
+
 monte_carlo_probability_of_rejection <- function(runs,significance,level,scale,p,hursts){
   count = 0
   for(i in 1:runs){
@@ -294,19 +319,51 @@ for(scale in 5:8){
   print(paste(scale,level,as.integer(p), mean))
 }
 
-for(scale in 5:13){
+for(scale in 5:15){
   level = 18
-  p = 32
-  E <- log(wavelet_sampe_covariance(level,scale,p,c(0.75)))/(scale*log(2))
+  p = 4
+  E <- log(wavelet_sampe_covariance(level,scale,p,c(0.50)))/(scale*log(2))
   mean <- mean(E)
   print(paste(scale,level,as.integer(p), mean))
 }
+
 for(scale in 5:13){
   level = 18
-  p = 32
+  p = 4
   E <- log(wavelet_sampe_covariance(level,scale,p,c(0.75)))/(scale*log(2))
   mean <- mean(E)
   print(paste(scale,level,as.integer(p), mean))
 }
 
+E<- log(wavelet_sampe_covariance(16,10,4,c(0.5)))/(scale*log(2))
+E_1 = E[!is.na(E)]
+mean(E_1)
+hist(E)
+#---------------------- Low dimensional problem
+
+ev_1 <- c()
+ev_2 <- c()
+ev_3 <- c()
+ev_4 <- c()
+
+for(i in 1:12){
+  level = 18
+  scale = 4+i
+  p = 4
+  E <-(log(wavelet_sampe_covariance(level,scale,p,c(0.75)))/(scale*log(2))-1)*(1/2)
+  E <- sort(E)
+  ev_1 <- append(ev_1,E[1])
+  ev_2 <- append(ev_2,E[2])
+  ev_3 <- append(ev_3,E[3])
+  ev_4 <- append(ev_4,E[4])
+}
+
+scales <- 4+c(1:12)
+
+plot(scales,ev_1
+     ,col ="red",type = "l"
+     ,ylim = c(0.2,0.60),ylab = "eigenvalues")
+lines(scales,ev_2,col="blue")
+lines(scales,ev_3,col="green")
+lines(scales,ev_4,col="purple")
 

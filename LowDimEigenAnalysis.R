@@ -6,7 +6,7 @@
 library(somebm)
 library(wavelets)
 library(diptest)
-
+library(MASS)
 
 #------------------------- [ Functions ]----------------------------
 
@@ -270,17 +270,20 @@ Linear_Model<-lm(data~c(4:16))
 summary(Linear_Model)
 
 
-#-----------------Regression ---------
+#-----------------Regression -------------------------
+j1 <- 6
+j2 <- 11
+c(c(j1:j2),rep(1,j2-j1+1))
+X <- matrix(c(c(j1:j2),rep(1,j2-j1+1)),2,j2-j1+1,byrow=TRUE)
+weights <- ginv(X)%*%c(1,0)
 
 Hurst = 0.75
-
-v <- rep(1/5,5)
 level = 18
+
 delta <- 0
 data <- c()
-runs = 30
-j1 <- 6
-j2 <- 10
+runs = 1000
+
 for(level in 11:18){
   avg_delta <- 0
   for(r in 1:runs){
@@ -288,7 +291,7 @@ for(level in 11:18){
     delta <- 0
     i<- 1
     for(j in c(j1:j2)){
-      delta<- delta + v[i]*log(wavelet_eigen[[i]],base=2)/j
+      delta<- delta + i*weights[i]*log(wavelet_eigen[[i]],base=2)/j
       i<-i+1
     }
     avg_delta <-avg_delta+delta
@@ -302,16 +305,7 @@ plot(c(11:18),data, type = "l"
      , ylab = "delta"
      , main = "Def 3.2 vs path size. Hurst = 0.75")
 
-test <- list()
-for(i in 1:5){
-  test<- append(test,c(NA))
-}
-for(j in 1:5){
-  test[[j]]<- append(test[[j]],j)
-}
-for(j in 1:5){
-  test[[j]]<- test[[j]][!is.na(test[[j]])]
-}
+
 test[[3]] <- c(1,2,3)
 test
 test <- c(1:6)

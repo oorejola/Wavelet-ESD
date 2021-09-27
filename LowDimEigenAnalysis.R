@@ -273,11 +273,13 @@ summary(Linear_Model)
 #-----------------Regression -------------------------
 j1 <- 6
 j2 <- 11
-c(c(j1:j2),rep(1,j2-j1+1))
-X <- matrix(c(c(j1:j2),rep(1,j2-j1+1)),2,j2-j1+1,byrow=TRUE)
+l = j2-j1+1
+c(c(j1:j2),rep(1,l))
+X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
+null_space <- Null(t(X))
 weights <- ginv(X)%*%c(1,0)
 
-Hurst = 0.75
+Hurst = 0.25
 level = 18
 
 delta <- 0
@@ -289,26 +291,32 @@ for(level in 11:18){
   for(r in 1:runs){
     wavelet_eigen <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst)
     delta <- 0
-    i<- 1
-    for(j in c(j1:j2)){
-      delta<- delta + i*weights[i]*log(wavelet_eigen[[i]],base=2)/j
-      i<-i+1
+    for(i in 1:l){
+      delta<- delta + weights[i]*log(wavelet_eigen[[i]],base=2)
     }
     avg_delta <-avg_delta+delta
   }
   data <- append(data,avg_delta)
 }
 data <- data/runs
+#data75<-data
+#data05 <-data
+data25 <-data
+par(mfrow=c(2,1))
 
-plot(c(11:18),data, type = "l"
+plot(c(11:18),data25, type = "l"
      , xlab = "path size"
      , ylab = "delta"
-     , main = "Def 3.2 vs path size. Hurst = 0.75")
+     , main = "Def 3.2 vs path size. Hurst = 0.25, j1 = 6 j2 = 11")
+plot(c(11:18),data05, type = "l"
+     , xlab = "path size"
+     , ylab = "delta"
+     , main = "Def 3.2 vs path size. Hurst = 0.50, j1 = 6 j2 = 11")
+plot(c(11:18),data75, type = "l"
+     , xlab = "path size"
+     , ylab = "delta"
+     , main = "Def 3.2 vs path size. Hurst = 0.75, j1 = 6 j2 = 11")
 
 
-test[[3]] <- c(1,2,3)
-test
-test <- c(1:6)
-matrix(test, 2,3,byrow=FALSE)
-test <- append(test, c(1:2))
-test
+
+

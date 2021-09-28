@@ -62,76 +62,115 @@ low_dim_wavelet_sampe_covariances<- function(level,scales,Hursts, mixed = FALSE)
 
 
 #------[ Simulations and Data generation ]----------
-
+set.seed(1000)
 #---------- MEAN SQUARED DIFFERENCE 
-levels = 11
-pathsize = 2^levels
-hurst = 0.25
-scales <- c(4:6)
-FBM <- pathsize^hurst*fbm(hurst, pathsize)
-runs = 5000
+level = 17
 
-data <- c()
+Hurst_1 = 0.25
+Hurst_2 = 0.75
 
-regression_coefficient_avg <-0
+runs = 2000
 
-for(r in 1:runs){
-  MSD_data <- c()
-  for(j in scales){
-    MSD <- mean(diff(FBM,2^j)^2)
-    MSD_data <- append(MSD_data,MSD)
-  }
-  Linear_Model<-lm(log(MSD_data ,base=2)~scales)
-  regression_coefficient_avg <- regression_coefficient_avg + summary(Linear_Model)$coefficients[2,1]
-}
-regression_coefficient_avg/runs
-#-----------------Regression -------------------------
-j1 <- 5
+data_MSD_1 <- c()
+data_MSD_2 <- c()
+j1 <- 6
 j2 <- 8
-l = j2-j1+1
-c(c(j1:j2),rep(1,l))
-X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
-X
-null_space <- Null(t(X))
-weights <- ginv(X)%*%c(1,0)
-weights 
-
-Hurst = 0.25
-level = 16
-
-delta <- 0
-data <- c()
-runs = 100
-
 for(level in 11:level){
-  avg_delta <- 0
+  
+  pathsize = 2^level
+  regression_coefficient_avg_1 <-0
+  regression_coefficient_avg_2 <-0
   for(r in 1:runs){
-    wavelet_eigen <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst)
-    delta <- 0
-    for(i in 1:l){
-      delta<- delta + weights[i]*log(wavelet_eigen[[i]],base=2)
+    FBM_1 <- pathsize^Hurst_1*fbm(Hurst_1, pathsize)
+    FBM_2 <- pathsize^Hurst_2*fbm(Hurst_2, pathsize)
+    MSD_data_1 <- c()
+    MSD_data_2 <- c()
+    for(j in c(j1:j2)){
+      MSD_1 <- mean(diff(FBM_1,2^j)^2)
+      MSD_2 <- mean(diff(FBM_2,2^j)^2)
+      MSD_data_1 <- append(MSD_data_1,MSD_1)
+      MSD_data_2 <- append(MSD_data_2,MSD_2)
     }
-    avg_delta <-avg_delta+delta
+    Linear_Model_1<-lm(log(MSD_data_1 ,base=2)~c(j1:j2))
+    Linear_Model_2<-lm(log(MSD_data_2 ,base=2)~c(j1:j2))
+    print(r)
+    regression_coefficient_avg_1 <- regression_coefficient_avg_1 + summary(Linear_Model_1)$coefficients[2,1]
+    regression_coefficient_avg_2 <- regression_coefficient_avg_2 + summary(Linear_Model_2)$coefficients[2,1]
   }
-  data <- append(data,avg_delta)
+  
+  data_MSD_1 <- append(data_MSD_1,regression_coefficient_avg_1/runs)
+  data_MSD_2 <- append(data_MSD_2,regression_coefficient_avg_2/runs)
+  j1 <- j1 + 1
+  j2 <- j2 + 1
 }
-data <- data/runs
+data_MSD_1 <- (data_MSD_1)*0.5
+data_MSD_2 <- (data_MSD_2)*0.5
+ 
+par(mfrow=c(2,1))
 
-data_rescale <- (data - 1)*0.5
-#data75<-data
-#data05 <-data
-data25 <-data_rescale 
-par(mfrow=c(1,1))
+plot(c(11:level),data_MSD_1 , type = "l"
+     , xlab = "path size"
+     , ylab = "angular coefficent"
+     , main = paste(" regression coefficients for logMSD vs Path size, Hurst = ", Hurst_1))
+plot(c(11:level),data_MSD_2, type = "l"
+     , xlab = "path size"
+     , ylab = "angular coefficent"
+     , main = paste("regression coefficients for logMSD vs Path size, Hurst = ", Hurst_2))
+#-----------------Regression -------------------------
 
-plot(c(11:level),data25, type = "l"
+
+Hurst_1 = 0.25
+Hurst_2 = 0.75
+level = 17
+
+
+data_1 <- c()
+data_2 <- c()
+runs = 2000
+
+j1 <- 6
+j2 <- 8
+seedcounter <-1
+for(level in 11:level){
+  avg_delta_1 <- 0
+  avg_delta_2 <- 0
+  l = j2-j1+1
+  X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
+  weights <- ginv(X)%*%c(1,0)
+  #null_space <- Null(t(X))
+  for(r in 1:runs){
+    #set.seed(seedcounter)
+    wavelet_eigen_1 <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst_1)
+    wavelet_eigen_2 <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst_2)
+   # seedcounter <- seedcounter + 1
+    delta_1 <- 0
+    delta_2 <- 0
+    for(i in 1:l){
+      delta_1<- delta_1 + weights[i]*log(wavelet_eigen_1[[i]],base=2)
+      delta_2<- delta_2 + weights[i]*log(wavelet_eigen_2[[i]],base=2)
+    }
+    avg_delta_1 <-avg_delta_1+delta_1
+    avg_delta_2 <-avg_delta_2+delta_2
+  }
+  data_1 <- append(data_1,avg_delta_1)
+  data_2 <- append(data_2,avg_delta_2)
+  j1 <- j1 + 1
+  j2 <- j2 + 1
+}
+data_1 <- data_1/runs
+data_2 <- data_2/runs
+data_rescale_1 <- (data_1 - 1)*0.5
+data_rescale_2 <- (data_2 - 1)*0.5
+
+par(mfrow=c(2,1))
+
+plot(c(11:level),data_rescale_1, type = "l"
      , xlab = "path size"
      , ylab = "delta"
-     , main = "Def 3.2 vs path size. Hurst = 0.25, j1 = 5 j2 = 8")
-plot(c(11:level),data05, type = "l"
+     , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_1))
+plot(c(11:level),data_rescale_2, type = "l"
      , xlab = "path size"
      , ylab = "delta"
-     , main = "Def 3.2 vs path size. Hurst = 0.50, j1 = 6 j2 = 11")
-plot(c(11:level),data75, type = "l"
-     , xlab = "path size"
-     , ylab = "delta"
-     , main = "Def 3.2 vs path size. Hurst = 0.75, j1 = 6 j2 = 11")
+     , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_2))
+
+

@@ -64,22 +64,25 @@ low_dim_wavelet_sampe_covariances<- function(level,scales,Hursts, mixed = FALSE)
 #------[ Simulations and Data generation ]----------
 set.seed(1000)
 #---------- MEAN SQUARED DIFFERENCE 
-level = 17
-
+max_level = 15
+min_level = 11
 Hurst_1 = 0.25
 Hurst_2 = 0.75
 
-runs = 2000
+runs = 1000
 
-data_MSD_1 <- c()
-data_MSD_2 <- c()
-j1 <- 6
-j2 <- 8
-for(level in 11:level){
+mc_estimate_MSD_1 <- c()
+mc_estimate_MSD_2 <- c()
+mc_std_MSD_1 <- c()
+mc_std_MSD_2 <- c()
+RMSE <- c()
+j1 <- 5
+j2 <- 7
+for(level in min_level:max_level){
   
   pathsize = 2^level
-  regression_coefficient_avg_1 <-0
-  regression_coefficient_avg_2 <-0
+  regression_coefficient_avg_1 <- c()
+  regression_coefficient_avg_2 <- c()
   for(r in 1:runs){
     FBM_1 <- pathsize^Hurst_1*fbm(Hurst_1, pathsize)
     FBM_2 <- pathsize^Hurst_2*fbm(Hurst_2, pathsize)
@@ -93,84 +96,100 @@ for(level in 11:level){
     }
     Linear_Model_1<-lm(log(MSD_data_1 ,base=2)~c(j1:j2))
     Linear_Model_2<-lm(log(MSD_data_2 ,base=2)~c(j1:j2))
-    print(r)
-    regression_coefficient_avg_1 <- regression_coefficient_avg_1 + summary(Linear_Model_1)$coefficients[2,1]
-    regression_coefficient_avg_2 <- regression_coefficient_avg_2 + summary(Linear_Model_2)$coefficients[2,1]
+    regression_coefficient_avg_1 <- append(regression_coefficient_avg_1,summary(Linear_Model_1)$coefficients[2,1])
+    regression_coefficient_avg_2 <- append(regression_coefficient_avg_2,summary(Linear_Model_2)$coefficients[2,1])
   }
-  
-  data_MSD_1 <- append(data_MSD_1,regression_coefficient_avg_1/runs)
-  data_MSD_2 <- append(data_MSD_2,regression_coefficient_avg_2/runs)
+  mc_estimate_1<- mean(regression_coefficient_avg_1)
+  MSE <- mean((regression_coefficient_avg_1-2*Hurst_1)**2)
+  RMSE <- append(RMSE, sqrt(MSE))
+  mc_std_1 <-sd(regression_coefficient_avg_1)
+  mc_estimate_2<- mean(regression_coefficient_avg_2)
+  mc_std_2 <-sd(regression_coefficient_avg_2)
+  mc_std_MSD_1 <- append(mc_std_MSD_1,mc_std_1)
+  mc_std_MSD_2 <- append(mc_std_MSD_2,mc_std_2)
+  mc_estimate_MSD_1 <- append(mc_estimate_MSD_1,mc_estimate_1)
+  mc_estimate_MSD_2 <- append(mc_estimate_MSD_2,mc_estimate_2)
   j1 <- j1 + 1
   j2 <- j2 + 1
 }
-data_MSD_1 <- (data_MSD_1)*0.5
-data_MSD_2 <- (data_MSD_2)*0.5
+mc_estimate_MSD_1 <- (mc_estimate_MSD_1)*0.5
+mc_estimate_MSD_2 <- (mc_estimate_MSD_2)*0.5
  
-par(mfrow=c(2,1))
+par(mfrow=c(3,1))
 
-plot(c(11:level),data_MSD_1 , type = "l"
+plot(c(min_level:max_level),mc_estimate_MSD_1 , type = "l"
      , xlab = "path size"
      , ylab = "angular coefficent"
      , main = paste(" regression coefficients for logMSD vs Path size, Hurst = ", Hurst_1))
-plot(c(11:level),data_MSD_2, type = "l"
-     , xlab = "path size"
-     , ylab = "angular coefficent"
-     , main = paste("regression coefficients for logMSD vs Path size, Hurst = ", Hurst_2))
+#plot(c(min_level:max_level),mc_estimate_MSD_2, type = "l" , xlab = "path size" , ylab = "angular coefficent" , main = paste("regression coefficients for logMSD vs Path size, Hurst = ", Hurst_2))
+
+plot(c(min_level:max_level),RMSE, type = "o"
+     , xlab = "pathsize"
+     , ylab = "RMSE"
+     , main = paste("MC runs = ", runs))
+
+plot(c(min_level:max_level),mc_std_MSD_1, type = "o"
+     , xlab = "pathsize"
+     , ylab = "MC std"
+     , main = paste("MC runs = ", runs))
+
+
 #-----------------Regression -------------------------
 
 
 Hurst_1 = 0.25
-Hurst_2 = 0.75
-level = 17
+#Hurst_2 = 0.75
+min_level = 11 #range of octaves to simulate over
+max_level = 15
 
 
 data_1 <- c()
-data_2 <- c()
-runs = 2000
+data_RMSE <- c()
+data_sd <- c()
+#data_2 <- c()
+runs = 1000 #number of MC runs
 
-j1 <- 6
-j2 <- 8
+j1 <- 5
+j2 <- 7
 seedcounter <-1
-for(level in 11:level){
-  avg_delta_1 <- 0
-  avg_delta_2 <- 0
+for(level in min_level:max_level){
+  mc_delta_1 <- c()
+  data_SE <- c()
   l = j2-j1+1
   X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
   weights <- ginv(X)%*%c(1,0)
   #null_space <- Null(t(X))
   for(r in 1:runs){
-    #set.seed(seedcounter)
     wavelet_eigen_1 <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst_1)
-    wavelet_eigen_2 <- low_dim_wavelet_sampe_covariances(level,c(j1:j2),Hurst_2)
-   # seedcounter <- seedcounter + 1
     delta_1 <- 0
-    delta_2 <- 0
     for(i in 1:l){
       delta_1<- delta_1 + weights[i]*log(wavelet_eigen_1[[i]],base=2)
-      delta_2<- delta_2 + weights[i]*log(wavelet_eigen_2[[i]],base=2)
     }
-    avg_delta_1 <-avg_delta_1+delta_1
-    avg_delta_2 <-avg_delta_2+delta_2
+    data_SE <- append(data_SE, (delta_1 - (2*Hurst_1 + 1))**2)
+    mc_delta_1 <-append(mc_delta_1,delta_1)
   }
-  data_1 <- append(data_1,avg_delta_1)
-  data_2 <- append(data_2,avg_delta_2)
+  rescaled_delta <- (mc_delta_1 - rep(1,length(mc_delta_1)))*0.5
+  data_1 <- append(data_1,mean(rescaled_delta))
+  data_sd <- append(data_sd, sd(rescaled_delta ))
+  data_RMSE <- append(data_RMSE,sqrt(mean(data_SE)))
   j1 <- j1 + 1
   j2 <- j2 + 1
 }
-data_1 <- data_1/runs
-data_2 <- data_2/runs
-data_rescale_1 <- (data_1 - 1)*0.5
-data_rescale_2 <- (data_2 - 1)*0.5
 
-par(mfrow=c(2,1))
+par(mfrow=c(3,1))
 
-plot(c(11:level),data_rescale_1, type = "l"
+plot(c(min_level:max_level),data_1, type = "l"
      , xlab = "path size"
      , ylab = "delta"
      , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_1))
-plot(c(11:level),data_rescale_2, type = "l"
+plot(c(min_level:max_level),data_RMSE, type = "o"
      , xlab = "path size"
-     , ylab = "delta"
-     , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_2))
+     , ylab = "RMSE"
+     , main = paste("runs  = ", runs))
+
+plot(c(min_level:max_level),data_sd, type = "o"
+     , xlab = "path size"
+     , ylab = "MC std"
+     , main = paste("runs  = ", runs))
 
 

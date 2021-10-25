@@ -99,12 +99,12 @@ delta_estimator_multivariate <- function(hurst,min_level,max_level,runs){
   data <- list() #Initalize blank lists
   data_sd <- list()
   data_RMSE <- list()
-  j1 <- 3 #Fixed at 3 to match paper
+  j1 <- 6 
   level_index=1
   for(level in min_level:max_level){
     mc_delta<- list()
     data_SE <- list()
-    j2 <- level - 2 # set j2 to  log_2(path_size) - number of vanishing moments
+    j2 <- level - 3 # set j2 to  log_2(path_size) - number of vanishing moments
     l = j2-j1+1
     X <- matrix(c(c(j1:j2),rep(1,l)),2,l,byrow=TRUE)
     weights <- ginv(X)%*%c(1,0)
@@ -264,7 +264,34 @@ abline(h=0.3, col="blue")
 abline(h=0.5, col="blue")
 abline(h=0.7, col="blue")
 abline(h=0.9, col="blue")
+#----------
+#----------
+#----------
+#----------
+#----------
+min_level = 10 #range of octaves to simulate over
+max_level = 20 
+Multivariate<- delta_estimator_multivariate(c(0.3,0.4,0.5,0.7,0.8,0.9), min_level,max_level,1000)
+Multivariate_as_dataframe <-as.data.frame(Multivariate[[1]],col.names = c(min_level:max_level))
 
-test<- delta_estimator_multivariate(c(0.1,0.3,0.5,0.7), min_level,max_level,3)
-T <-as.data.frame(test[[1]],col.names = c(min_level:max_level))
-T
+par(mfrow=c(1,1))
+plot(c(min_level:max_level), Multivariate_as_dataframe [1,] *0.5 - 0.5
+     ,ylim = c(0,1)
+     ,xlab ="pathsize"
+     ,ylab = "delta estimator"
+     ,main = paste("Five Hurst: ", "Runs = ", runs)
+     ,type = "o") 
+lines(c(min_level:max_level),Multivariate_as_dataframe[2,]*0.5 - 0.5
+      ,type = "o")
+lines(c(min_level:max_level), Multivariate_as_dataframe[3,]*0.5 - 0.5
+      ,type = "o")
+lines(c(min_level:max_level), Multivariate_as_dataframe[4,]*0.5 - 0.5,type = "o")
+lines(c(min_level:max_level), Multivariate_as_dataframe[5,]*0.5 - 0.5,type = "o")
+lines(c(min_level:max_level), Multivariate_as_dataframe[6,]*0.5 - 0.5,type = "o")
+
+abline(h=0.3, col="blue" )
+abline(h=0.4, col="blue")
+abline(h=0.5, col="blue")
+abline(h=0.7, col="blue")
+abline(h=0.8, col="blue")
+abline(h=0.9, col="blue")

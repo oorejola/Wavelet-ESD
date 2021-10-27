@@ -71,6 +71,7 @@ wavelet_regression_estimator <- function(level,j1, window_size, dimension,Hursts
     X <- matrix(c(c(j1:j2),rep(1,L)),2,L,byrow=TRUE)
     weights <- ginv(X)%*%c(1,0)
     delta <- rep(0,dimension)
+   # print(j2)
     l <-1
     for(j in c(j1:j2)){
     delta <- delta + weights[l]*log_wavelet_eigevalues[l]
@@ -125,3 +126,52 @@ for(sig in sig_levels){
   index <- index + 1 
 }
 alphas <- as.data.frame(alphas,col.names = sig_levels)
+
+
+runs = 1000
+more_sig_levels <-  seq(0.95,1,by = 0.01)
+more_alphas <-list()
+index <- 1
+
+for(sig in more_sig_levels){
+  test <- monte_carlo_probability_of_rejection(runs,sig,12,2,3,2^6,c(0.5))
+  print(paste("dip_test_significance:" ,sig))
+  print(test)
+  more_alphas[[index]]<- test
+  index <- index + 1 
+}
+more_alphas <- as.data.frame(more_alphas,col.names = more_sig_levels)
+
+
+
+par(mfrow=c(1,1))
+plot(x = c(sig_levels,more_sig_levels),y = c(alphas[1,],more_alphas[1,]),type = 'b',
+    ylab = "MC rejection proprtion",
+    xlab = "Dip test significance",
+    main = "Simulated rejection v.s. diptest rejection:Hurst = 0.5 Pathsize = 2^12, j1 = 2, p=2^6")
+lines(x = c(sig_levels,more_sig_levels),y =  c(alphas[2,],more_alphas[2,]),type = 'b',col = "blue")
+lines(x = c(sig_levels,more_sig_levels),y =  c(alphas[3,],more_alphas[3,]),type = 'b',col = "red")
+legend(0.2, 0.8, legend=c("j2 = 4 ", "j2 = 5", "j2 = 6"),
+       col=c("black", "blue","red"), lty=1:3,  text.font=4)
+
+
+analysis <- wavelet_regression_estimator(12,2,3,2^6,c(0.5))
+par(mfrow=c(1,3))
+hist(analysis[[1]]*0.5-0.5,breaks = 32,
+     xlim = c(0,1),
+     xlab = "regression eigenvalues",
+     main = paste("p-value",dip.test(unlist(analysis[[1]]*0.5-0.5))$p.value, " p=",2^6," j1= ",2,"j2=",4))
+abline(v=0.5, col="blue")
+hist(analysis[[2]]*0.5-0.5,breaks = 32,
+     xlim = c(0,1),
+     xlab = "regression eigenvalues",
+     main = paste("p-value",dip.test(unlist(analysis[[2]]*0.5-0.5))$p.value, " p=",2^6," j1= ",2,"j2=",5))
+abline(v=0.5, col="blue")
+hist(analysis[[3]]*0.5-0.5,breaks = 32,
+     xlim = c(0,1),
+     xlab = "regression eigenvalues",
+     main = paste("p-value",dip.test(unlist(analysis[[3]]*0.5-0.5))$p.value, " p=",2^6," j1= ",2,"j2=",6))
+abline(v=0.5, col="blue")
+     
+     
+     

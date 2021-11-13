@@ -30,7 +30,7 @@ wavelet_sampe_covariance<- function(level,scale,p,Hursts, mixed = FALSE){
     #MIXED<-  N^H*fbm(hurst = H, n = N) 
     fractional_brownian <-  N^H*fbm(hurst = H, n = N) 
     wavelet_transform <- dwt(fractional_brownian, filter = "d4", n.levels = level, boundary = "reflection")
-    wavelet_list <- append(wavelet_list,unlist(wavelet_transform@W[scale]))
+    wavelet_list <- append(wavelet_list,unlist(wavelet_transform@W[scale+1]))
   }
   wavelet_mat<- matrix(wavelet_list, n_j, p,byrow = FALSE)
   

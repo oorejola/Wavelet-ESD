@@ -155,7 +155,7 @@ legend(0.2, 0.8, legend=c("j2 = 4 ", "j2 = 5", "j2 = 6"),
        col=c("black", "blue","red"), lty=1:3,  text.font=4)
 
 
-analysis <- wavelet_regression_estimator(12,2,3,2^6,c(0.5))
+analysis <- wavelet_regression_estimator(12,2,3,2^6,c(0.5,0.7))
 par(mfrow=c(1,3))
 hist(analysis[[1]]*0.5-0.5,breaks = 32,
      xlim = c(0,1),

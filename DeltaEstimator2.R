@@ -171,12 +171,13 @@ for(i in c(2:dimension)){
 
 #######33-----------------
 par(mfrow=c(2,3))
-level <- 18
+level <- 17
 dimension <- 2^6
 scale_max <- level-log(dimension,base=2)
-scale_min <- 4
+scale_min <- 3
 window_size <-3
-hurst = c(0.2,0.8)
+hurst = c(0.2,0.4,0.6,0.8)
+#hurst = c(0.3, 0.4, 0.5,0.7,0.8,0.9)
 wavelet_eigenvalues <-as.data.frame(probabilistic_wavelet_sampe_covariances(level,c(scale_min:scale_max),dimension,hurst),col.names =c(scale_min:scale_max))
 
 log_wavelet_eigevalues <- log2(wavelet_eigenvalues)
@@ -216,8 +217,9 @@ for(dat in data){
        xlim = c(0,1),
        xlab = "regression eigenvalues",
        main = paste("log_2(N)=",level, " p=",dimension," j1= ",j1,"j2=",j2))
-  abline(v=0.2, col="blue" ) 
-  abline(v=0.8, col="blue")
+  for(hur in hurst){
+    abline(v=hur, col="blue" ) 
+  }
   i<-i+1
 }
 
@@ -231,9 +233,9 @@ plot(c(5:10),unlist(data[1,])*0.5-0.5, type = 'l', col = 2,ylim = c(-0.5,1)
      ,ylab = "log_2(eigenvalues)/j*0.5-0.5"
      ,xlab = "j2  "
      ,main = paste("log(wavelet eigenvalues), log_2(pathsize)=", level, ",p=",dimension ))
-abline(h=0.2, col="blue" ) 
-#abline(v=0.5, col="blue")
-abline(h=0.8, col="blue")
+for(hur in hurst){
+  abline(h=hur, col="blue" ) 
+}
 for(i in c(2:dimension)){
   lines(c(5:10),unlist(data[i,])*0.5-0.5)
 }

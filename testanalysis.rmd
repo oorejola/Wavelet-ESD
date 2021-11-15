@@ -17,6 +17,8 @@ library(somebm)
 library(wavelets)
 library(MASS)
 library(diptest)
+library(ggplot2)
+library(data.table)
 ```
 
 ## Functions
@@ -125,13 +127,54 @@ monte_carlo_probability_of_rejection <- function(runs,dip_test_significance,leve
 
 ```
 
+## Size Analysis
+Test Size of test. 
+
+
+```{r}
+runs = 1000
+level = 14
+pathsize = 2^12
+dimension = 2^6
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig_levels <-  c(seq(0.05,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <-list()
+index <- 1
+
+for(sig in sig_levels){
+  test <- monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts)
+  print(paste("dip_test_significance:" ,sig))
+  print(test)
+  alphas[[index]]<- test
+  index <- index + 1 
+}
+alphas <- as.data.frame(alphas,col.names = sig_levels)
+```
+
+```{r}
+t_alphas <- transpose(alphas)
+t_alphas["sig"] <- sig_levels
+ggplot(data=t_alphas)+
+  geom_line(aes(x=sig,y=V1))+
+  geom_line(aes(x=sig,y=V2))+
+  geom_line(aes(x=sig,y=V3))+
+  geom_line(aes(x=sig,y=V4))+
+  geom_line(aes(x=sig,y=V5))
+```
+
+```{r}
+write.csv(alphas,"size_of_test_pathsize_14_H05_j1_2_initwindow_3")
+```
 
 ## Power Analysis
 
+Test Power of test. H1= 0.1 to H2=0.3
 ```{r Parameters}
 runs = 1000
-level = 12
-Pathsize = 2^12
+level = 14
+Pathsize = 2^level
 j1 = 2
 init_window = 3
 dimension = 2^6
@@ -140,7 +183,7 @@ proportion_of_rejections <- list()
 H2 <- seq(0.13, 0.3, by=0.01)
 H1 <- rep(0.1, length(H2))
 Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.4
+dip_test_significance <- 0.35
 index <- 1
 for(H in Hursts){
   print(H)
@@ -151,6 +194,51 @@ for(H in Hursts){
 proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
 ```
 
+```{r}
+H2 <- seq(0.13, 0.3, by=0.01)
+names(proportion_of_rejections) = H2
+write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3")
+```
+
+```{r}
+H2 <- seq(0.13, 0.3, by=0.01)
+t_proportion_of_rejections <- transpose(proportion_of_rejections)
+t_proportion_of_rejections["H2"] <- H2
+t_proportion_of_rejections
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=H2,y=V1))
+
+```
+
+Test Power of test. H1= 0.6 to H2=0.9
+```{r Parameters}
+runs = 1000
+level = 14
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^6
+
+proportion_of_rejections_2 <- list()
+H2 <- seq(0.63, 0.9, by=0.01)
+H1 <- rep(0.6, length(H2))
+Hursts <- Map(c,H1,H2)
+dip_test_significance <- 0.35
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections_2 <- as.data.frame(proportion_of_rejections, colnames(H2))
+
+```
+```{r}
+H2 <- seq(0.63, 0.9, by=0.01)
+names(proportion_of_rejections_2) = H2
+write.csv(proportion_of_rejections_2,"proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3")
+```
 # Plots
 
 ## Histograms

@@ -187,7 +187,7 @@ ggplot(data=new_alphas)+
 ## Power Analysis
 
 Test Power of test. H1= 0.1 to H2=0.3
-```{r Parameters}
+```{r, eval=FALSE}
 runs = 1000
 level = 14
 Pathsize = 2^level
@@ -228,7 +228,7 @@ ggplot(t_proportion_of_rejections)+
 ```
 
 Test Power of test. H1= 0.6 to H2=0.9
-```{r Parameters}
+```{r eval=FALSE}
 runs = 1000
 level = 14
 Pathsize = 2^level
@@ -270,6 +270,39 @@ ggplot(t_proportion_of_rejections)+
 # Plots
 
 ## Histograms
+```{r}
+level = 14
+diff <- 0.2
+H1 <- seq(0.1,0.6, by =0.1)
+H2 <- seq(0.1,0.6, by =0.1) +diff
+Hursts <- Map(c,H1,H2)
+
+par(mfrow=c(2,3))
+for(H in Hursts){
+  #Mixed H1 H2
+  hist(wavelet_regression_estimator(level,2,3,2^6,H)[[1]]*0.5-0.5, breaks = 32,
+     xlab = paste("Regression Estimator"),
+     xlim = c(-1,1),
+     main = paste("H1 =", H[1], "H2 =", H[2]))#,"pathsize =2^",level, "dimension =2^", 6))
+  abline(v=H[1], col="blue" )
+  abline(v=H[2], col="blue" )
+  
+}
+```
+
+```{r}
+H=0.5
+level = 14
+data<-wavelet_regression_estimator(level,2,3,2^6,H)
+par(mfrow=c(1,5))
+for(dat in data)
+{
+  hist(dat*0.5-0.5, breaks = 32,
+        xlim = c(-1,1))
+}
+
+```
+
 
 ```{r}
 level = 14

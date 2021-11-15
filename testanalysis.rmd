@@ -19,6 +19,8 @@ library(MASS)
 library(diptest)
 library(ggplot2)
 library(data.table)
+library(dplyr)
+library(latex2exp)
 ```
 
 ## Functions
@@ -151,22 +153,36 @@ for(sig in sig_levels){
   index <- index + 1 
 }
 alphas <- as.data.frame(alphas,col.names = sig_levels)
+#write.csv(alphas,"size_of_test_pathsize_14_H05_j1_2_initwindow_3")
+```
+
+```{r}
+sig_levels <-  c(seq(0.05,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <- subset(read.csv("size_of_test_pathsize_14_H05_j1_2_initwindow_3"),select = c(1:length(sig_levels )+1))
+alphas
 ```
 
 ```{r}
 t_alphas <- transpose(alphas)
 t_alphas["sig"] <- sig_levels
-ggplot(data=t_alphas)+
-  geom_line(aes(x=sig,y=V1))+
-  geom_line(aes(x=sig,y=V2))+
-  geom_line(aes(x=sig,y=V3))+
-  geom_line(aes(x=sig,y=V4))+
-  geom_line(aes(x=sig,y=V5))
+names(t_alphas) <- c(4:8,"sig")
+new_alphas<- t_alphas %>%
+  pivot_longer(cols=c(1:5),names_to = "J2",values_to = "alpha")
+
+new_alphas
 ```
 
 ```{r}
-write.csv(alphas,"size_of_test_pathsize_14_H05_j1_2_initwindow_3")
+ggplot(data=new_alphas)+
+  geom_line(aes(x=sig,y=alpha,colour=J2))+
+  xlab("Dip Test Significance Level")+
+  ylab("Proportion of rejection")+
+  labs( title = TeX("$H$ = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2"))
+  
+
 ```
+
+
 
 ## Power Analysis
 
@@ -192,22 +208,23 @@ for(H in Hursts){
   index <- index + 1
 }
 proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
-```
-
-```{r}
-H2 <- seq(0.13, 0.3, by=0.01)
 names(proportion_of_rejections) = H2
-write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3")
+#write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3")
 ```
 
+
 ```{r}
-H2 <- seq(0.13, 0.3, by=0.01)
+H2<- seq(0.13, 0.3, by=0.01)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3"),select = c(1:length(H2)+1))
+proportion_of_rejections
 t_proportion_of_rejections <- transpose(proportion_of_rejections)
 t_proportion_of_rejections["H2"] <- H2
 t_proportion_of_rejections
 ggplot(t_proportion_of_rejections)+
-  geom_line(mapping=aes(x=H2,y=V1))
-
+  geom_line(mapping=aes(x=H2,y=V1))+
+  xlab(TeX("$H_2$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX("$H_1$ = 0.1, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
 ```
 
 Test Power of test. H1= 0.6 to H2=0.9
@@ -233,11 +250,22 @@ for(H in Hursts){
 }
 proportion_of_rejections_2 <- as.data.frame(proportion_of_rejections, colnames(H2))
 
+names(proportion_of_rejections_2) = H2
+#write.csv(proportion_of_rejections_2,"proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3")
 ```
+
 ```{r}
 H2 <- seq(0.63, 0.9, by=0.01)
-names(proportion_of_rejections_2) = H2
-write.csv(proportion_of_rejections_2,"proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3")
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3"),select = c(1:length(H2)+1))
+proportion_of_rejections
+t_proportion_of_rejections <- transpose(proportion_of_rejections)
+t_proportion_of_rejections["H2"] <- H2
+t_proportion_of_rejections
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=H2,y=V1))+
+  xlab(TeX("$H_2$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX("$H_1$ = 0.6, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
 ```
 # Plots
 

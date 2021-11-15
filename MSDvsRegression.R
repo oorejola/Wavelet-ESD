@@ -64,18 +64,18 @@ low_dim_wavelet_sampe_covariances<- function(level,scales,Hursts, mixed = FALSE)
 #------[ Simulations and Data generation ]----------
 set.seed(1000)
 #---------- MEAN SQUARED DIFFERENCE 
-level = 17
-
+max_level = 17
+min_level = 11
 Hurst_1 = 0.25
 Hurst_2 = 0.75
 
-runs = 2000
+runs = 1000
 
 data_MSD_1 <- c()
 data_MSD_2 <- c()
-j1 <- 6
-j2 <- 8
-for(level in 11:level){
+j1 <- 5
+j2 <- 7
+for(level in min_level:max_level){
   
   pathsize = 2^level
   regression_coefficient_avg_1 <-0
@@ -108,11 +108,11 @@ data_MSD_2 <- (data_MSD_2)*0.5
  
 par(mfrow=c(2,1))
 
-plot(c(11:level),data_MSD_1 , type = "l"
+plot(c(min_level:max_level),data_MSD_1 , type = "l"
      , xlab = "path size"
      , ylab = "angular coefficent"
      , main = paste(" regression coefficients for logMSD vs Path size, Hurst = ", Hurst_1))
-plot(c(11:level),data_MSD_2, type = "l"
+plot(c(min_level:max_level),data_MSD_2, type = "l"
      , xlab = "path size"
      , ylab = "angular coefficent"
      , main = paste("regression coefficients for logMSD vs Path size, Hurst = ", Hurst_2))
@@ -121,17 +121,17 @@ plot(c(11:level),data_MSD_2, type = "l"
 
 Hurst_1 = 0.25
 Hurst_2 = 0.75
-level = 17
-
+max_level = 17
+min_level = 11
 
 data_1 <- c()
 data_2 <- c()
-runs = 2000
+runs = 10
 
-j1 <- 6
-j2 <- 8
+j1 <- 5
+j2 <- 7
 seedcounter <-1
-for(level in 11:level){
+for(level in min_level:max_level){
   avg_delta_1 <- 0
   avg_delta_2 <- 0
   l = j2-j1+1
@@ -164,11 +164,11 @@ data_rescale_2 <- (data_2 - 1)*0.5
 
 par(mfrow=c(2,1))
 
-plot(c(11:level),data_rescale_1, type = "l"
+plot(c(min_level:max_level),data_rescale_1, type = "l"
      , xlab = "path size"
      , ylab = "delta"
      , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_1))
-plot(c(11:level),data_rescale_2, type = "l"
+plot(c(min_level:max_level),data_rescale_2, type = "l"
      , xlab = "path size"
      , ylab = "delta"
      , main = paste("rescaled Delta Estimator vs Path size, Hurst = ", Hurst_2))

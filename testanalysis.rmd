@@ -245,10 +245,10 @@ index <- 1
 for(H in Hursts){
   print(H)
   test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
-  proportion_of_rejections[[index]] <- test
+  proportion_of_rejections_2[[index]] <- test
   index <- index + 1
 }
-proportion_of_rejections_2 <- as.data.frame(proportion_of_rejections, colnames(H2))
+proportion_of_rejections_2 <- as.data.frame(proportion_of_rejections_2, colnames(H2))
 
 names(proportion_of_rejections_2) = H2
 #write.csv(proportion_of_rejections_2,"proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3")
@@ -266,6 +266,135 @@ ggplot(t_proportion_of_rejections)+
   xlab(TeX("$H_2$"))+
   ylab("Proportion of rejections")+
   labs( title = TeX("$H_1$ = 0.6, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+Test Power of test. Multiple Hursts
+
+
+```{r 5 Hursts}
+H1 <- seq(0.5,0.9,by=0.02)
+H2 <- seq(0.5,0.7,by=0.01)
+H3 <- rep(0.5,21)
+H4 <- seq(0.5,0.3,by=-0.01)
+H5 <- seq(0.5,0.1,by=-0.02)
+Hursts <- Map(c,H1,H2,H3,H4,H5)
+Hursts
+```
+```{r eval=FALSE}
+runs = 1000
+level = 14
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^6
+
+proportion_of_rejections_multi_5_hursts <- list()
+H1 <- seq(0.5,0.9,by=0.02)
+H2 <- seq(0.5,0.7,by=0.01)
+H3 <- rep(0.5,21)
+H4 <- seq(0.5,0.3,by=-0.01)
+H5 <- seq(0.5,0.1,by=-0.02)
+Hursts <- Map(c,H1,H2,H3,H4,H5)
+
+diff <- seq(0,0.2,by=0.01)
+dip_test_significance <- 0.35
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections_multi_5_hursts[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections_multi_5_hursts<- as.data.frame(proportion_of_rejections_multi_5_hursts, colnames(diff))
+
+names(proportion_of_rejections_multi_5_hursts) = diff
+#write.csv(proportion_of_rejections_multi_5_hursts,"proportion_of_rejections_pathsize_14_5Hursts_j1_2_initwindow_3")
+```
+
+
+```{r 4 Hurst}
+len <- 27
+H1 <- seq(0.5, by = 0.015, length.out = len)
+H2 <- seq(0.5, by = 0.005, length.out = len)
+H3 <- seq(0.5, by = -0.005, length.out = len)
+H4 <- seq(0.5, by = -0.015, length.out = len)
+
+Hursts <- Map(c,H1,H2,H3,H4)
+Hursts
+```
+```{r eval=FALSE}
+runs = 1000
+level = 14
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^6
+
+proportion_of_rejections_multi_4_hursts <- list()
+len <- 27
+H1 <- seq(0.5, by = 0.015, length.out = len)
+H2 <- seq(0.5, by = 0.005, length.out = len)
+H3 <- seq(0.5, by = -0.005, length.out = len)
+H4 <- seq(0.5, by = -0.015, length.out = len)
+
+Hursts <- Map(c,H1,H2,H3,H4)
+
+diff <- seq(0,by=0.01, length.out = len)
+dip_test_significance <- 0.35
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections_multi_4_hursts[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections_multi_4_hursts<- as.data.frame(proportion_of_rejections_multi_4_hursts, colnames(diff))
+
+names(proportion_of_rejections_multi_4_hursts) = diff
+write.csv(proportion_of_rejections_multi_4_hursts,"proportion_of_rejections_pathsize_14_4_Hursts_j1_2_initwindow_3")
+```
+
+
+```{r 3 Hurst}
+len <- 30
+H1 <- seq(0.5, by = 0.01, length.out = len)
+H2 <- rep(0.5,len)
+H3 <- seq(0.5, by = -.01, length.out = len)
+
+
+Hursts <- Map(c,H1,H2,H3)
+Hursts
+```
+```{r eval=FALSE}
+runs = 1000
+level = 14
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^6
+
+proportion_of_rejections_multi_3_hursts <- list()
+len <- 30
+H1 <- seq(0.5, by = 0.01, length.out = len)
+H2 <- rep(0.5,len)
+H3 <- seq(0.5, by = -.01, length.out = len)
+
+
+Hursts <- Map(c,H1,H2,H3)
+
+diff <- seq(0,by=0.01, length.out = len)
+dip_test_significance <- 0.35
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections_multi_3_hursts[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections_multi_3_hursts<- as.data.frame(proportion_of_rejections_multi_3_hursts, colnames(diff))
+
+names(proportion_of_rejections_multi_3_hursts) = diff
+write.csv(proportion_of_rejections_multi_3_hursts,"proportion_of_rejections_pathsize_14_3_Hursts_j1_2_initwindow_3")
 ```
 # Plots
 

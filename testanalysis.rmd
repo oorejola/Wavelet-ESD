@@ -20,14 +20,18 @@ library(diptest)
 library(ggplot2)
 library(data.table)
 library(dplyr)
+library(tidyr)
 library(latex2exp)
+library(tibble)
+library(pracma)
 ```
 
 ## Functions
 
-
 ```{r Functions}
 
+# Coordinate_matrix:
+# Random invertable matrix with columns unit vector columns
 coordinate_matrix <- function(n){
   mat <- c()
   for(i in 1:n){
@@ -38,10 +42,18 @@ coordinate_matrix <- function(n){
   return(matrix(mat, n, n,byrow = FALSE))
 }
 
+# Probabilistic Wavelet Sample Covariance
+# inputs: level: (numeric) log2(sample path size)
+#         scales: (vector) relevant scales of interest 
+#         dimension: (numeric) dimension of multivariate fBm sampled
+#         Hurst: (vector) hurst parameters from which each hurst parameter sampled for a univaraite fBm
+#         mixed: (boolean) determines if coordinate matrix is used 
+# output: multivariate array
 probabilistic_wavelet_sample_covariances<- function(level,scales,dimension,Hursts, mixed = FALSE){
   N = 2^level #Path size
   #n_j = N/(2^scale)
   P <- coordinate_matrix(dimension)
+  #P<- randortho(dimension,"orthonormal")
   wavelet_list <- list()
   #Create blank list of NA from which we will construct List of Vectors
   for(j in scales){wavelet_list <- append(wavelet_list, c(NA))}
@@ -129,15 +141,79 @@ monte_carlo_probability_of_rejection <- function(runs,dip_test_significance,leve
 
 ```
 
+```{r}
+#null_dist <- unlist(wavelet_regression_estimator(14,2,3,2^6,c(0.1,0.7))[2])
+#dip.test(null_dist)
+
+U<- randortho(10)
+crossprod(U[,1])
+```
+
 ## Size Analysis
 Test Size of test. 
 
+### Size of test using pathsize 2^14 and dimension p = 2^6
+```{r eval=FALSE}
+runs = 1000
+level = 14
+pathsize = 2^level
+dimension = 2^6
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig_levels <-  c(seq(0.05,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <-list()
+index <- 1
+
+for(sig in sig_levels){
+  test <- monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts,mixed=TRUE)
+  print(paste("dip_test_significance:" ,sig))
+  print(test)
+  alphas[[index]]<- test
+  index <- index + 1 
+}
+alphas <- as.data.frame(alphas,col.names = sig_levels)
+write.csv(alphas,"mixed_size_of_test_pathsize_14_H05_j1_2_initwindow_3")
+```
+
+```{r}
+sig_levels <-  c(seq(0.05,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <- subset(read.csv("mixed_size_of_test_pathsize_14_H05_j1_2_initwindow_3"),select = c(1:length(sig_levels )+1))
+
+t_alphas <- data.table::transpose(alphas)
+t_alphas["sig"] <- sig_levels
+names(t_alphas) <- c(4:8,"sig")
+new_alphas<- t_alphas %>%
+  pivot_longer(cols=c(1:5),names_to = "J2",values_to = "alpha")
+
+ggplot(data=new_alphas)+
+  geom_line(aes(x=sig,y=alpha,colour=J2))+
+  xlab("Dip Test Significance Level")+
+  ylab("Proportion of rejection")+
+  labs( title = TeX("$H$ = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2"))
+
+alphas
+```
 
 ```{r}
 runs = 1000
 level = 14
-pathsize = 2^12
+pathsize = 2^level
 dimension = 2^6
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig = 0.83
+size<-monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts)
+size
+```
+### Size of test using pathsize 2^12 and dimension p = 2^5
+
+```{r eval=FALSE}
+runs = 1000
+level = 12
+pathsize = 2^level
+dimension = 2^5
 j1 = 2
 init_window = 3
 Hursts = 0.5
@@ -153,40 +229,105 @@ for(sig in sig_levels){
   index <- index + 1 
 }
 alphas <- as.data.frame(alphas,col.names = sig_levels)
-#write.csv(alphas,"size_of_test_pathsize_14_H05_j1_2_initwindow_3")
+write.csv(alphas,"size_of_test_pathsize_12_dimension_5_H05_j1_2_initwindow_3")
 ```
 
+Plot the size of test
 ```{r}
 sig_levels <-  c(seq(0.05,0.95,by = 0.05),seq(0.955,1,by = 0.015))
-alphas <- subset(read.csv("size_of_test_pathsize_14_H05_j1_2_initwindow_3"),select = c(1:length(sig_levels )+1))
-alphas
-```
+alphas <- subset(read.csv("size_of_test_pathsize_12_dimension_5_H05_j1_2_initwindow_3"),select = c(1:length(sig_levels )+1))
 
-```{r}
-t_alphas <- transpose(alphas)
+t_alphas <- data.table::transpose(alphas)
 t_alphas["sig"] <- sig_levels
-names(t_alphas) <- c(4:8,"sig")
+
+names(t_alphas) <- c(4:7,"sig")
 new_alphas<- t_alphas %>%
-  pivot_longer(cols=c(1:5),names_to = "J2",values_to = "alpha")
+  pivot_longer(cols=c(1:4),names_to = "J2",values_to = "alpha")
 
-new_alphas
-```
-
-```{r}
 ggplot(data=new_alphas)+
   geom_line(aes(x=sig,y=alpha,colour=J2))+
   xlab("Dip Test Significance Level")+
   ylab("Proportion of rejection")+
-  labs( title = TeX("$H$ = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2"))
-  
-
+  labs( title = TeX("$H$ = 0.5, N = $2^{12}, p = $2^5$, $j_1$ = 2"))
 ```
 
+```{r}
+level = 12
+pathsize = 2^level
+dimension = 2^5
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig = 0.175
+test <- monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts)
+test
+```
 
+For a test of size 0.052 we use a dip test significance level of 0.175
+### Size of test using pathsize 2^12 and dimension p = 2^4
+
+```{r eval=FALSE}
+runs = 1000
+level = 12
+pathsize = 2^level
+dimension = 2^4
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig_levels <-  c(seq(0.0,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <-list()
+index <- 1
+
+for(sig in sig_levels){
+  test <- monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts)
+  print(paste("dip_test_significance:" ,sig))
+  print(test)
+  alphas[[index]]<- test
+  index <- index + 1 
+}
+alphas <- as.data.frame(alphas,col.names = sig_levels)
+write.csv(alphas,"size_of_test_pathsize_12_dimension_4_H05_j1_2_initwindow_3")
+```
+
+Plot the size of test
+```{r plot size of test}
+sig_levels <-  c(seq(0.0,0.95,by = 0.05),seq(0.955,1,by = 0.015))
+alphas <- subset(read.csv("size_of_test_pathsize_12_dimension_4_H05_j1_2_initwindow_3"),select = c(1:length(sig_levels )+1))
+
+t_alphas <- data.table::transpose(alphas)
+t_alphas["sig"] <- sig_levels
+
+names(t_alphas) <- c(4:8,"sig")
+new_alphas<- t_alphas %>%
+  pivot_longer(cols=c(1:4),names_to = "J2",values_to = "alpha")
+new_alphas
+ggplot(data=new_alphas)+
+  geom_line(aes(x=sig,y=alpha,colour=J2))+
+  xlab("Dip Test Significance Level")+
+  ylab("Proportion of rejection")+
+  labs( title = TeX("$H$ = 0.5, N = $2^{12}, p = $2^4$, $j_1$ = 2"))
+```
+
+```{r}
+level = 12
+pathsize = 2^level
+dimension = 2^4
+j1 = 2
+init_window = 3
+Hursts = 0.5
+sig = 0.1
+test <- monte_carlo_probability_of_rejection(runs,sig,level,j1,init_window,dimension,Hursts)
+test
+```
+
+For a test of size 0.05 we use a dip test significance level of 0.1
 
 ## Power Analysis
 
-Test Power of test. H1= 0.1 to H2=0.3
+Based on the size of test plots. For a pathsize of 2^14, p = 2^6, j1 = 2, j2= 4, in order to guarantee a test of size approximately 0.045, we use a dip test significance of 0.35.
+
+
+* Test Power of test. H1= 0.05 to H2=0.3
 ```{r, eval=FALSE}
 runs = 1000
 level = 14
@@ -196,10 +337,10 @@ init_window = 3
 dimension = 2^6
 
 proportion_of_rejections <- list()
-H2 <- seq(0.13, 0.3, by=0.01)
-H1 <- rep(0.1, length(H2))
+H2 <- seq(0.05, 0.3, by=0.01)
+H1 <- rep(0.05, length(H2))
 Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.35
+dip_test_significance <- 0.8
 index <- 1
 for(H in Hursts){
   print(H)
@@ -209,25 +350,10 @@ for(H in Hursts){
 }
 proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
 names(proportion_of_rejections) = H2
-#write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3")
+write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_14_H1=005_j1_2_initwindow_3")
 ```
 
-
-```{r}
-H2<- seq(0.13, 0.3, by=0.01)
-proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3"),select = c(1:length(H2)+1))
-proportion_of_rejections
-t_proportion_of_rejections <- transpose(proportion_of_rejections)
-t_proportion_of_rejections["H2"] <- H2
-t_proportion_of_rejections
-ggplot(t_proportion_of_rejections)+
-  geom_line(mapping=aes(x=H2,y=V1))+
-  xlab(TeX("$H_2$"))+
-  ylab("Proportion of rejections")+
-  labs( title = TeX("$H_1$ = 0.1, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
-```
-
-Test Power of test. H1= 0.6 to H2=0.9
+* Test Power of test. H1= 0.6 to H2=0.95
 ```{r eval=FALSE}
 runs = 1000
 level = 14
@@ -237,38 +363,26 @@ init_window = 3
 dimension = 2^6
 
 proportion_of_rejections_2 <- list()
-H2 <- seq(0.63, 0.9, by=0.01)
+H2 <- seq(0.6, 0.95, by=0.01)
 H1 <- rep(0.6, length(H2))
 Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.35
+dip_test_significance <- 0.25 #power 0.05 when mixed
 index <- 1
 for(H in Hursts){
   print(H)
-  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H,mixed=TRUE)
   proportion_of_rejections_2[[index]] <- test
   index <- index + 1
 }
 proportion_of_rejections_2 <- as.data.frame(proportion_of_rejections_2, colnames(H2))
 
 names(proportion_of_rejections_2) = H2
-#write.csv(proportion_of_rejections_2,"proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3")
+write.csv(proportion_of_rejections_2,"mixed_025_proportion_of_rejections_pathsize_14_H1=06_j1_2_j2=5initwindow_3")
 ```
 
-```{r}
-H2 <- seq(0.63, 0.9, by=0.01)
-proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3"),select = c(1:length(H2)+1))
-proportion_of_rejections
-t_proportion_of_rejections <- transpose(proportion_of_rejections)
-t_proportion_of_rejections["H2"] <- H2
-t_proportion_of_rejections
-ggplot(t_proportion_of_rejections)+
-  geom_line(mapping=aes(x=H2,y=V1))+
-  xlab(TeX("$H_2$"))+
-  ylab("Proportion of rejections")+
-  labs( title = TeX("$H_1$ = 0.6, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
-```
+Test Power of test.
 
-Test Power of test. Multiple Hursts
+Multiple Hurst Parameters
 
 
 ```{r 5 Hursts}
@@ -278,7 +392,8 @@ H3 <- rep(0.5,21)
 H4 <- seq(0.5,0.3,by=-0.01)
 H5 <- seq(0.5,0.1,by=-0.02)
 Hursts <- Map(c,H1,H2,H3,H4,H5)
-Hursts
+
+
 ```
 ```{r eval=FALSE}
 runs = 1000
@@ -320,7 +435,6 @@ H3 <- seq(0.5, by = -0.005, length.out = len)
 H4 <- seq(0.5, by = -0.015, length.out = len)
 
 Hursts <- Map(c,H1,H2,H3,H4)
-Hursts
 ```
 ```{r eval=FALSE}
 runs = 1000
@@ -363,7 +477,6 @@ H3 <- seq(0.5, by = -.01, length.out = len)
 
 
 Hursts <- Map(c,H1,H2,H3)
-Hursts
 ```
 ```{r eval=FALSE}
 runs = 1000
@@ -394,28 +507,388 @@ for(H in Hursts){
 proportion_of_rejections_multi_3_hursts<- as.data.frame(proportion_of_rejections_multi_3_hursts, colnames(diff))
 
 names(proportion_of_rejections_multi_3_hursts) = diff
-write.csv(proportion_of_rejections_multi_3_hursts,"proportion_of_rejections_pathsize_14_3_Hursts_j1_2_initwindow_3")
+#write.csv(proportion_of_rejections_multi_3_hursts,"proportion_of_rejections_pathsize_14_3_Hursts_j1_2_initwindow_3")
 ```
-# Plots
+
+For a pathsize of 2^12, p = 2^4, j1 = 2, j2= 4, in order to guarantee a test of size approximately 0.045, we use a dip test significance of 0.1.
+
+* Test Power of test. H1= 0.1 to H2=0.45
+```{r, eval=FALSE}
+runs = 1000
+level = 12
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^4
+
+proportion_of_rejections <- list()
+H2 <- seq(0.1, 0.45, by=0.01)
+H1 <- rep(0.1, length(H2))
+Hursts <- Map(c,H1,H2)
+dip_test_significance <- 0.1
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
+names(proportion_of_rejections) = H2
+write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_12_dimension_4_H1=01_j1_2_initwindow_3")
+```
+
+* Test Power of test. H1= 0.6 to H2=0.95
+```{r, eval=FALSE}
+runs = 1000
+level = 12
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^4
+
+proportion_of_rejections <- list()
+H2 <- seq(0.6, 0.95, by=0.01)
+H1 <- rep(0.6, length(H2))
+Hursts <- Map(c,H1,H2)
+dip_test_significance <- 0.1
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
+names(proportion_of_rejections) = H2
+write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_12_dimension_4_H1=06_j1_2_initwindow_3")
+```
+
+
+Based on the size of test plots. For a pathsize of 2^12, p = 2^5, j1 = 2, j2= 4, in order to guarantee a test of size approximately 0.051, we use a dip test significance of 0.175.
+
+* Test Power of test. H1= 0.6 to H2=0.9
+```{r, eval=FALSE}
+runs = 1000
+level = 12
+Pathsize = 2^level
+j1 = 2
+init_window = 3
+dimension = 2^5
+
+proportion_of_rejections <- list()
+H2 <- seq(0.6, 0.95, by=0.01)
+H1 <- rep(0.6, length(H2))
+Hursts <- Map(c,H1,H2)
+dip_test_significance <- 0.175
+index <- 1
+for(H in Hursts){
+  print(H)
+  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
+  proportion_of_rejections[[index]] <- test
+  index <- index + 1
+}
+proportion_of_rejections <- as.data.frame(proportion_of_rejections, colnames(H2))
+names(proportion_of_rejections) = H2
+write.csv(proportion_of_rejections,"proportion_of_rejections_pathsize_12_dimension_5_H1=06_j1_2_initwindow_3")
+```
+
+
+## Plots
+
+###Two Hurst Plots
+```{r plot two hurst H1 01 dim 2^4 pathsize 2^12}
+len=length(seq(0.1, 0.45, by=0.01))
+diff <- seq(0, by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_12_dimension_4_H1=06_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_1 - H_2$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 2 Hurst Parameters, $H_1 = 0.6$") ,subtitle = TeX("$ N = $2^{12}, p = $2^4$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+```{r}
+proportion_of_rejections<- read.csv("mixed_proportion_of_rejections_pathsize_14_H1=06_j1_2_j2=5initwindow_3")
+len = dim(proportion_of_rejections)[2]
+diff = seq(0,0.35,by=0.01)
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections<- t_proportion_of_rejections[-1,] %>%
+  mutate(d = diff)
+
+ggplot(data=t_proportion_of_rejections)+
+  geom_line(aes(x=d,y=V2))+
+  xlab(TeX("$H_2-H_1$"))+
+  ylim(c(0,1))+
+  ylab("Proportion of rejection")+ 
+  labs( title = TeX(" 2 Hurst Parameters, $H_1 = 0.6$") ,subtitle = TeX("$ N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 5" ))
+```
+```{r plot two hurst H1=0.6 dim 2^6 pathsize 2^14}
+len=length(seq(0.6, 0.85, by=0.01))
+diff <- seq(0, by=0.01, length.out = len)
+proportion_of_rejections005<- read.csv("proportion_of_rejections_pathsize_14_H1=005_j1_2_initwindow_3")
+dim(proportion_of_rejections005)
+proportion_of_rejections005
+t_proportion_of_rejections005 <- proportion_of_rejections005 %>% 
+  select(starts_with("X0."))%>%
+  data.table::transpose()
+
+
+t_proportion_of_rejections005["Differences"] <- diff
+t_proportion_of_rejections005
+proportion_of_rejections<- subset(read.csv("mixed_proportion_of_rejections_pathsize_14_H1=06_j1_2_j2=5initwindow_3"),select = c(1:length(diff)+1))
+dim(proportion_of_rejections)
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+
+combined_data<-merge(t_proportion_of_rejections005,t_proportion_of_rejections,by="Differences")
+
+ggplot(combined_data)+
+  geom_line(mapping=aes(x=Differences,y=V2.x),color="red")+
+  geom_line(mapping=aes(x=Differences,y=V2.y),color="blue")+
+  xlab(TeX("$H_2 - H_1$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 2 Hurst Parameters, $H_1 = 0.6$") ,subtitle = TeX("$ N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 5" ))+
+  theme_bw()
+```
+
+```{r plot two hurst H1 01}
+len=18
+diff <- seq(0, by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=01_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_1 - H_2$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 2 Hurst Parameters, $H_1 = 0.1$") ,subtitle = TeX("$ N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+```{r plot two hurst H1 06}
+len = 28
+diff <- seq(0, by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_H1=06_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_1 - H_2$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 2 Hurst Parameters, $H_1 = 0.6$") ,subtitle = TeX("$ N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+
+```{r plot 3 Hurst}
+len <- 30
+diff <- seq(0,by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_3_Hursts_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_i - H_j$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 3 Hurst Parameters") ,subtitle = TeX("$H_{initial} = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+```{r plot 4 Hurst}
+len <- 27
+diff <- seq(0,by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_4_Hursts_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_i - H_j$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 4 Hurst Parameters") ,subtitle = TeX("$H_{initial} = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
+```{r plot 5 Hurst}
+len <- 21
+diff <- seq(0,by=0.01, length.out = len)
+proportion_of_rejections<- subset(read.csv("proportion_of_rejections_pathsize_14_5Hursts_j1_2_initwindow_3"),select = c(1:length(diff)+1))
+t_proportion_of_rejections <- data.table::transpose(proportion_of_rejections)
+t_proportion_of_rejections["Differences"] <- diff
+
+ggplot(t_proportion_of_rejections)+
+  geom_line(mapping=aes(x=Differences,y=V1))+
+  xlab(TeX("$H_i - H_j$"))+
+  ylab("Proportion of rejections")+
+  labs( title = TeX(" 5 Hurst Parameters") ,subtitle = TeX("$H_{initial} = 0.5, N = $2^{14}, p = $2^6$, $j_1$ = 2, $j_2$ = 4" ))
+```
+
 
 ## Histograms
-```{r}
+
+```{r Hursts Hist for paper}
+#set.seed(100)
 level = 14
-diff <- 0.2
-H1 <- seq(0.1,0.6, by =0.1)
-H2 <- seq(0.1,0.6, by =0.1) +diff
+dimension = 2^6
+
+H1 <- 0.6
+H2 <- 0.9
+H <- c(H1,H2)
+
+H4 <- c( 0.20,0.4,0.6,0.8)
+
+df4<- as.tibble(wavelet_regression_estimator(level,2,3,dimension,H4,mixed=TRUE)[[2]]*0.5-0.5)
+
+H3<- c(0.2,0.5,0.8)
+df3<-  as.tibble(wavelet_regression_estimator(level,2,3,dimension,H3,mixed=TRUE)[[2]]*0.5-0.5)
+
+df2<- as.tibble(wavelet_regression_estimator(level,2,3,dimension,H,mixed=FALSE)[[2]]*0.5-0.5)
+df1<- as.tibble(wavelet_regression_estimator(level,2,3,dimension,0.5,mixed=TRUE)[[2]]*0.5-0.5)
+
+
+ggplot( df4, aes(x= value) )+
+    geom_histogram(color="black", fill="white",bins=32)+
+    xlim(c(0,1))+
+    ylab("Frequencey")+
+    xlab("Regression Estimator")+ 
+   #labs( title = TeX(" 4 Hurst Parameters") ,subtitle = TeX("H_1 = 0.2, H_2 = 0.4, H_3 = 0.6, H_4 = 0.8, n= $2^{14}$, p = $2^6$, $j_1$ = 2, $j_2$ = 5"))+
+   geom_vline(xintercept = 0.2, linetype="dotted", color = "blue", size=1)+
+   geom_vline(xintercept = 0.4, linetype="dotted", color = "blue", size=1)+
+  geom_vline(xintercept = 0.6, linetype="dotted", color = "blue", size=1)+
+   geom_vline(xintercept = 0.8, linetype="dotted", color = "blue", size=1)+
+  theme(aspect.ratio=1)
+ 
+ggplot( df3, aes(x= value) )+
+    geom_histogram(color="black", fill="white",bins=32)+
+    xlim(c(0,1))+
+    ylab("Frequencey")+
+    xlab("Regression Estimator")+ 
+   #labs( title = TeX(" 4 Hurst Parameters") ,subtitle = TeX("H_1 = 0.2, H_2 = 0.4, H_3 = 0.6, H_4 = 0.8, n= $2^{14}$, p = $2^6$, $j_1$ = 2, $j_2$ = 5"))+
+   geom_vline(xintercept = 0.2, linetype="dotted", color = "blue", size=1)+
+   geom_vline(xintercept = 0.5, linetype="dotted", color = "blue", size=1)+
+  geom_vline(xintercept = 0.8, linetype="dotted", color = "blue", size=1)+
+  theme(aspect.ratio=1)
+ 
+
+ ggplot( df2, aes(x= value) )+
+    geom_histogram(color="black", fill="white",bins=32)+
+    xlim(c(0,1))+
+    ylab("Frequencey")+
+    xlab("Regression Estimator")+ 
+   #labs( title = TeX(" 2 Hurst Parameters") ,subtitle = TeX("H_1 = 0.3, H_2 = 0.7 , n= $2^{14}$, p = $2^6$, $j_1$ = 2, $j_2$ = 5"))+
+   geom_vline(xintercept = H[1], linetype="dotted", color = "blue", size=1)+
+   geom_vline(xintercept = H[2], linetype="dotted", color = "blue", size=1)+
+  theme(aspect.ratio=1)
+ 
+ggplot( df1, aes(x= value) )+
+    geom_histogram(color="black", fill="white",bins=32)+
+    xlim(c(0,1))+
+    ylab("Frequencey")+
+    xlab("Regression Estimator")+ 
+  #labs( title = TeX("Single Hurst Parameter") ,subtitle = TeX("H = 0.5, n= $2^{14}$, p = $2^6$, $j_1$ = 2, $j_2$ = 5"))+
+   geom_vline(xintercept = 0.5, linetype="dotted", color = "blue", size=1)+
+  theme(aspect.ratio=1)
+
+
+```
+
+```{r 2 Hursts Hist}
+level = 12
+dimension = 2^4
+diff <- 0.35
+H1 <- rep(0.6,8)
+H2 <- seq(0.6,0.95, by =0.05)
 Hursts <- Map(c,H1,H2)
 
+par(mfrow=c(2,4))
+for(H in Hursts){
+  #Mixed H1 H2
+  hist(wavelet_regression_estimator(level,2,3,dimension,H)[[1]]*0.5-0.5, breaks = 32,
+     xlab = paste("Regression Estimator"),
+     xlim = c(0,1),
+     main = paste("H1 =", H[1], "H2 =", H[2]))#,"pathsize =2^",level, "dimension =2^", 6))
+  abline(v=H[1], col="blue" )
+  abline(v=H[2], col="blue" )
+  
+}
+```
+
+
+```{r 3 Hursts Hist}
+level = 12
+len = 6
+dimension = 2^4
+H1 <- seq(0.5, by = -0.025 , length.out = len)
+H2 <- rep(0.5, len)
+H3 <- seq(0.5, by = 0.025 , length.out = len)
+Hursts <- Map(c,H1,H2,H3)
+
+par(mfrow=c(2,3))
+for(H in Hursts){
+  #Mixed H1 H2
+  hist(wavelet_regression_estimator(level,2,3,dimension,H)[[1]]*0.5-0.5, breaks = 32,
+     xlab = paste("Regression Estimator"),
+     xlim = c(0,1),
+     main = paste(" Difference = " , H[2]-H[1]))
+  abline(v=H[1], col="blue" )
+  abline(v=H[2], col="blue" )
+  abline(v=H[3], col="blue" )
+  
+}
+```
+
+```{r 4 Hursts Hist}
+level = 14
+len = 6
+H1 <- seq(0.5, by = 0.045 , length.out = len)
+H2 <- seq(0.5, by = 0.015 , length.out = len)
+H3 <- seq(0.5, by = -0.015 , length.out = len)
+H4 <- seq(0.5, by = -0.045 , length.out = len)
+diff <- seq(0,by=0.03,length.out=len)
+Hursts <- Map(c,H1,H2,H3,H4)
+
+iter= 1
 par(mfrow=c(2,3))
 for(H in Hursts){
   #Mixed H1 H2
   hist(wavelet_regression_estimator(level,2,3,2^6,H)[[1]]*0.5-0.5, breaks = 32,
      xlab = paste("Regression Estimator"),
-     xlim = c(-1,1),
-     main = paste("H1 =", H[1], "H2 =", H[2]))#,"pathsize =2^",level, "dimension =2^", 6))
+     xlim = c(0,1),
+     main = paste(" Difference = " , diff[iter]))
   abline(v=H[1], col="blue" )
   abline(v=H[2], col="blue" )
-  
+  abline(v=H[3], col="blue" )
+  abline(v=H[4], col="blue" )
+  iter = iter + 1
+}
+```
+
+```{r 5 Hursts Hist}
+level = 14
+len = 6
+H1 <- seq(0.5, by = 0.05 , length.out = len)
+H2 <- seq(0.5, by = 0.025 , length.out = len)
+H3 <- rep(0.5,len)
+H4 <- seq(0.5, by = -0.025 , length.out = len)
+H5 <- seq(0.5, by = -0.05 , length.out = len)
+diff <- seq(0,by=0.025,length.out=len)
+Hursts <- Map(c,H1,H2,H3,H4,H5)
+
+iter= 1
+par(mfrow=c(2,3))
+for(H in Hursts){
+  #Mixed H1 H2
+  hist(wavelet_regression_estimator(level,2,3,2^6,H)[[1]]*0.5-0.5, breaks = 32,
+     xlab = paste("Regression Estimator"),
+     xlim = c(0,1),
+     main = paste(" Difference = " , diff[iter]))
+  abline(v=H[1], col="blue" )
+  abline(v=H[2], col="blue" )
+  abline(v=H[3], col="blue" )
+  abline(v=H[4], col="blue" )
+  abline(v=H[5], col="blue" )
+  iter = iter + 1
 }
 ```
 
@@ -458,121 +931,4 @@ for(H in Hursts){
 ```
 
 
-```{r}
-H2 <- seq(0.13, 0.3, by=0.01)
-H1 <- rep(0.1, length(H2))
-plot(H2-H1,proportion_of_rejections[1,] 
-     ,type = "o"
-     ,xlab = "Hurst2 - Hurst1"
-     ,ylab= "Proportion of rejections"
-     ,main = "dip sig=0.4, dimension = 2^6 j1 = 2, j2 = 4, H1 = 0.1")
 
-```
-
-```{r}
-monte_carlo_probability_of_rejection(runs,0.4,level,j1,init_window,dimension,c(0.6,0.99))
-```
-```{r}
-runs = 1000
-level = 12
-Pathsize = 2^12
-j1 = 2
-init_window = 3
-dimension = 2^6
-
-proportion_of_rejections2 <- list()
-H2 <- seq(0.12, 0.4, by=0.01)
-H1 <- rep(0.1, length(H2))
-Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.9
-index <- 1
-for(H in Hursts){
-  print(H)
-  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
-  proportion_of_rejections2[[index]] <- test
-  index <- index + 1
-}
-proportion_of_rejections2 <- as.data.frame(proportion_of_rejections2, colnames(H2))
-
-```
-
-```{r}
-H2 <- seq(0.12, 0.4, by=0.01)
-H1 <- rep(0.1, length(H2))
-plot(H2-H1,proportion_of_rejections2[2,] 
-     ,type = "o"
-     ,xlab = "Hurst2 - Hurst1"
-     ,ylab= "Proportion of rejections"
-     ,main = "dip sig=0.9, dimension = 2^6 j1 = 2, j2 = 5, H1 = 0.1")
-
-```
-
-```{r}
-runs = 1000
-level = 12
-Pathsize = 2^12
-j1 = 2
-init_window = 3
-dimension = 2^6
-
-proportion_of_rejections3 <- list()
-H2 <- seq(0.6, 0.95, by=0.01)
-H1 <- rep(0.6, length(H2))
-Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.4
-index <- 1
-for(H in Hursts){
-  print(H)
-  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
-  proportion_of_rejections3[[index]] <- test
-  index <- index + 1
-}
-proportion_of_rejections3 <- as.data.frame(proportion_of_rejections3, col.names=paste("H2",H2))
-
-```
-
-```{r}
-H2 <- seq(0.6, 0.95, by=0.01)
-H1 <- rep(0.6, length(H2))
-plot(H2-H1,proportion_of_rejections3[1,] 
-     ,type = "o"
-     ,xlab = "Hurst2 - Hurst1"
-     ,ylab= "Proportion of rejections",ylim = c(0,1)
-     ,main = "dip sig=0.4, dimension = 2^6 j1 = 2, j2 = 4, H1 = 0.6")
-
-```
-
-```{r}
-runs = 1000
-level = 12
-Pathsize = 2^12
-j1 = 2
-init_window = 3
-dimension = 2^6
-
-proportion_of_rejections_more <- list()
-H2 <- seq(0.95, 0.999, by=0.005)
-H1 <- rep(0.6, length(H2))
-Hursts <- Map(c,H1,H2)
-dip_test_significance <- 0.4
-index <- 1
-for(H in Hursts){
-  print(H)
-  test <- monte_carlo_probability_of_rejection(runs,dip_test_significance,level,j1,init_window,dimension,H)
-  proportion_of_rejections_more[[index]] <- test
-  index <- index + 1
-}
-proportion_of_rejections_more <- as.data.frame(proportion_of_rejections_more, colnames(H2))
-
-
-```
-```{r}
-H2 <- c(seq(0.6, 0.95, by=0.01),seq(0.95, 0.999, by=0.005))
-H1 <- rep(0.6, length(H2))
-plot(H2-H1,c(unlist(proportion_of_rejections3[1,]),unlist(proportion_of_rejections_more[1,]))
-     ,type = "o"
-     ,xlab = "Hurst2 - Hurst1"
-     ,ylab= "Proportion of rejections",ylim = c(0,1)
-     ,main = "dip sig=0.4, dimension = 2^6 j1 = 2, j2 = 4, H1 = 0.6")
-
-```

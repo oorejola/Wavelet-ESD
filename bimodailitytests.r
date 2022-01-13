@@ -52,3 +52,16 @@ plot(sig_levels,alphas_bimodal,type = "o",
      xlab="dip test significance", ylab= "MC rejection proprtion")
 
 hist(bimodal_dist(2^16,0.4,0.5,0.001,0.001), breaks =32,xlim = c(-1,1),main = "Bimodal Hist")
+
+runs = 1000
+data <- c()
+index <- 0
+diff <- seq(0,10,by=0.5)
+for(d in diff){
+  test<- monte_carlo_bimodal(runs,0.05,2^6,0,d,1,1)
+  data[index] <- test
+  index <- index + 1 
+}
+
+plot(data)
+  

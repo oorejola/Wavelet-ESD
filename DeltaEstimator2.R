@@ -8,13 +8,18 @@ library(MASS)
 
 #------------------------- [ Functions ]----------------------------
 coordinate_matrix <- function(n){
-  mat <- c()
-  for(i in 1:n){
-    x <- rnorm(n)
-    col <- x/sqrt(sum(x^2)) 
-    mat <- append(mat,col)
-  }
-  return(matrix(mat, n, n,byrow = FALSE))
+ # mat <- c()
+ # for(i in 1:n){
+  #  x <- rnorm(n)
+  #  col <- x/sqrt(sum(x^2)) 
+  #  mat <- append(mat,col)
+  #}
+ # return(matrix(mat, n, n,byrow = FALSE))
+  rho = 0.5
+  
+  T<-toeplitz(rho^c(0:(n-1)))
+  
+  return(chol(T))
 }
 
 
